@@ -1,0 +1,9 @@
+name = "brazuca-fc-groningen"
+compatibility_date = "2026-03-09"
+pages_build_output_dir = "."
+
+# Para desenvolvimento local com D1, substitua os placeholders abaixo.
+[[d1_databases]]
+binding = "DB"
+database_name = "brazuca-fc-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
