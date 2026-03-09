@@ -97,7 +97,8 @@ export async function initializeDb(env) {
   if (!sponsorCount?.count) {
     for (const sponsor of DEFAULT_SPONSORS) {
       await env.DB.prepare(
-        'INSERT INTO sponsors (name, subtitle, url, sort_order) VALUES (?1, ?2, ?3, ?4)'
+        'INSERT INTO sponsors (name, subtitle, url, sort_order, phone, logo_url, description, cta_label)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)'
       ).bind(
         sponsor.name,
         sponsor.subtitle,
