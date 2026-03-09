@@ -36,54 +36,62 @@ const DEFAULT_SPONSORS = [
 ];
 
 export async function initializeDb(env) {
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS settings (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS members (
+    )`,
+    `CREATE TABLE IF NOT EXISTS members (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS sponsors (
+    )`,
+    `CREATE TABLE IF NOT EXISTS sponsors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       subtitle TEXT NOT NULL,
       url TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS teams (
+    )`,
+    `CREATE TABLE IF NOT EXISTS teams (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       team_key TEXT NOT NULL,
       player_name TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS sessions (
+    )`,
+    `CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       username TEXT NOT NULL,
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+    )`,
+  ];
 
-  for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
-    await env.DB.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?1, ?2)')
-      .bind(key, String(value))
-      .run();
+  for (const sql of statements) {
+    await env.DB.prepare(sql).run();
   }
 
-  const sponsorCount = await env.DB.prepare('SELECT COUNT(*) AS count FROM sponsors').first();
+  for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
+    await env.DB.prepare(
+      'INSERT OR IGNORE INTO settings (key, value) VALUES (?1, ?2)'
+    ).bind(key, String(value)).run();
+  }
+
+  const sponsorCount = await env.DB
+    .prepare('SELECT COUNT(*) AS count FROM sponsors')
+    .first();
+
   if (!sponsorCount?.count) {
     for (const sponsor of DEFAULT_SPONSORS) {
-      await env.DB.prepare('INSERT INTO sponsors (name, subtitle, url, sort_order) VALUES (?1, ?2, ?3, ?4)')
-        .bind(sponsor.name, sponsor.subtitle, sponsor.url, sponsor.sortOrder)
-        .run();
+      await env.DB.prepare(
+        'INSERT INTO sponsors (name, subtitle, url, sort_order) VALUES (?1, ?2, ?3, ?4)'
+      ).bind(
+        sponsor.name,
+        sponsor.subtitle,
+        sponsor.url,
+        sponsor.sortOrder
+      ).run();
     }
   }
 }
