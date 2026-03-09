@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09110a" />
+  <meta name="description" content="Brazuca FC Groningen — gestão da rodada com pagamento, lista, times e patrocinadores." />
+  <meta property="og:title" content="Brazuca FC Groningen" />
+  <meta property="og:description" content="Organização da rodada, confirmações e times em um só lugar." />
+  <title>Brazuca FC Groningen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./app-config.js"></script>
+</head>
+<body>
+  <div class="top-stripe"></div>
+
+  <header class="site-header shell">
+    <div class="hero-panel glass">
+      <div class="hero-copy">
+        <p class="eyebrow">Comunidade brasileira · Groningen</p>
+        <h1>Brazuca FC Groningen</h1>
+        <div class="hero-highlights compact">
+          <span>⚽ Lista confirmada</span>
+          <span>💳 Pagamento</span>
+          <span>🧾 Aprovação</span>
+          <span>🏆 Times</span>
+        </div>
+      </div>
+
+      <div class="crest-wrap" aria-label="Brasão Brazuca FC Groningen">
+        <svg class="crest" viewBox="0 0 220 244" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="crestTitle">
+          <title id="crestTitle">Brazuca FC Groningen</title>
+          <defs>
+            <linearGradient id="shieldBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#122315"/>
+              <stop offset="100%" stop-color="#050805"/>
+            </linearGradient>
+            <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff0a5"/>
+              <stop offset="40%" stop-color="#ffd537"/>
+              <stop offset="100%" stop-color="#a76f00"/>
+            </linearGradient>
+            <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#08d95d"/>
+              <stop offset="100%" stop-color="#007c2f"/>
+            </linearGradient>
+            <linearGradient id="orangeGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#ff6b00"/>
+              <stop offset="100%" stop-color="#ff9d1f"/>
+            </linearGradient>
+            <linearGradient id="ribbonGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#101712"/>
+              <stop offset="50%" stop-color="#18241a"/>
+              <stop offset="100%" stop-color="#101712"/>
+            </linearGradient>
+            <radialGradient id="coreGlow" cx="50%" cy="42%" r="55%">
+              <stop offset="0%" stop-color="rgba(255,223,0,.32)"/>
+              <stop offset="100%" stop-color="rgba(255,223,0,0)"/>
+            </radialGradient>
+            <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="rgba(0,0,0,.45)"/>
+            </filter>
+            <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.1" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <clipPath id="shieldClip">
+              <path d="M110 10 L198 42 L198 124 Q198 193 110 234 Q22 193 22 124 L22 42 Z"/>
+            </clipPath>
+          </defs>
+
+          <path d="M110 10 L198 42 L198 124 Q198 193 110 234 Q22 193 22 124 L22 42 Z" fill="url(#shieldBg)" filter="url(#shadow)"/>
+          <path d="M110 20 L187 49 L187 120 Q187 182 110 219 Q33 182 33 120 L33 49 Z" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="1.5"/>
+          <rect x="22" y="42" width="176" height="34" fill="url(#orangeGrad)" clip-path="url(#shieldClip)"/>
+          <ellipse cx="110" cy="104" rx="72" ry="58" fill="url(#coreGlow)" clip-path="url(#shieldClip)"/>
+          <path d="M22 160 L22 124 Q22 193 110 234 Q198 193 198 124 L198 160 Q166 210 110 228 Q54 210 22 160 Z" fill="url(#greenGrad)" opacity=".86"/>
+          <path d="M110 10 L198 42 L198 124 Q198 193 110 234 Q22 193 22 124 L22 42 Z" fill="none" stroke="url(#goldGrad)" stroke-width="3.2"/>
+          <polygon points="110,61 170,111 110,161 50,111" fill="none" stroke="url(#goldGrad)" stroke-width="2.2" opacity=".94"/>
+          <circle cx="110" cy="111" r="30" fill="#0b120c" stroke="url(#goldGrad)" stroke-width="1.8"/>
+          <polygon points="110,84 123,92 118,108 102,108 97,92" fill="none" stroke="rgba(255,223,0,.65)" stroke-width="1.25"/>
+          <polygon points="110,138 123,130 127,115 110,110 93,115 97,130" fill="none" stroke="rgba(255,223,0,.65)" stroke-width="1.25"/>
+          <line x1="110" y1="84" x2="110" y2="79" stroke="rgba(255,223,0,.65)" stroke-width="1.25"/>
+          <line x1="123" y1="92" x2="128" y2="87" stroke="rgba(255,223,0,.65)" stroke-width="1.25"/>
+          <line x1="97" y1="92" x2="92" y2="87" stroke="rgba(255,223,0,.65)" stroke-width="1.25"/>
+          <path d="M57 176 Q110 160 163 176 L156 194 Q110 185 64 194 Z" fill="url(#ribbonGrad)" stroke="rgba(255,223,0,.45)" stroke-width="1.15" filter="url(#softGlow)"/>
+          <text x="110" y="66" text-anchor="middle" font-family="Russo One, sans-serif" font-size="15" fill="#fffdf2" letter-spacing="3.3">BRAZUCA</text>
+          <text x="110" y="188" text-anchor="middle" dominant-baseline="middle" font-family="Russo One, sans-serif" font-size="10.4" fill="url(#goldGrad)" letter-spacing="0.9">FC GRONINGEN</text>
+          <g fill="#ffdf00">
+            <circle cx="95" cy="33" r="2.2"/>
+            <circle cx="109" cy="28" r="2.7"/>
+            <circle cx="124" cy="33" r="2.2"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <nav class="main-nav shell" id="main-nav">
+    <button class="nav-btn active" data-tab="overview">Jogo</button>
+    <button class="nav-btn" data-tab="list">Lista</button>
+    <button class="nav-btn" data-tab="teams">Times</button>
+    <button class="nav-btn" data-tab="sponsors">Patrocinadores</button>
+  </nav>
+
+  <main class="shell page-grid">
+    <section class="tab active" id="tab-overview">
+      <div class="dashboard-grid">
+        <article class="card hero-card glass">
+          <div class="section-kicker">Próxima rodada</div>
+          <div class="hero-date" id="hero-date">--</div>
+          <div class="hero-time"><span id="hero-arrival">Chegada 14:50</span> · <span id="hero-window">15:00 — 17:00</span></div>
+          <div class="countdown" aria-label="Contagem regressiva">
+            <div><strong id="cd-d">0</strong><span>Dias</span></div>
+            <div><strong id="cd-h">00</strong><span>Horas</span></div>
+            <div><strong id="cd-m">00</strong><span>Min</span></div>
+          </div>
+          <div class="cta-row">
+            <button class="btn btn-primary" id="pay-btn">Pagar €4,00</button>
+            <button class="btn btn-secondary" id="signup-btn">Enviar comprovante</button>
+          </div>
+        </article>
+
+        <article class="card glass info-stack">
+          <div class="card-title">Detalhes</div>
+          <div class="storage-chip" id="storage-badge">Carregando dados…</div>
+          <div class="info-row"><span>📅</span><div><small>Data</small><strong id="game-date-inline">--</strong></div></div>
+          <div class="info-row"><span>📍</span><div><small>Local</small><strong id="venue-name">ACLO Groningen</strong></div></div>
+          <div class="info-row"><span>🗺️</span><div><small>Endereço</small><strong id="venue-address">Blauwborgje 16, 9747 AC Groningen</strong></div></div>
+          <div class="info-row"><span>👥</span><div><small>Vagas confirmadas</small><strong><span id="players-count">0</span>/<span id="max-slots-label">18</span></strong></div></div>
+          <div class="info-row"><span>💳</span><div><small>Valor</small><strong id="payment-inline">€4,00 por jogador</strong></div></div>
+          <div class="info-row"><span>🛡️</span><div><small>Status</small><strong id="storage-inline">Cache local ativo</strong></div></div>
+          <a class="btn btn-secondary" id="maps-link" target="_blank" rel="noopener">Abrir no Maps</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-list">
+      <article class="card glass">
+        <div class="card-head split-head">
+          <div>
+            <div class="card-title">Lista da rodada</div>
+            <p class="subcopy">Confirmados e pendentes.</p>
+          </div>
+          <div class="progress-pill"><span id="progress-count">0</span> confirmados</div>
+        </div>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        <div class="slots-grid" id="slots-grid"></div>
+      </article>
+    </section>
+
+    <section class="tab" id="tab-teams">
+      <article class="card glass">
+        <div class="card-head split-head">
+          <div>
+            <div class="card-title">Times</div>
+            <p class="subcopy">Escolha 3 capitães e gere os times.</p>
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-secondary btn-sm" id="share-teams-btn">Compartilhar</button>
+            <button class="btn btn-primary btn-sm" id="open-captains-btn">Gerar times</button>
+          </div>
+        </div>
+        <div class="empty-state" id="teams-empty">Ainda não há times gerados.</div>
+        <div class="teams-grid hidden" id="teams-grid">
+          <article class="team-card team-a"><header>🟢 Time Verde</header><div id="team-a"></div></article>
+          <article class="team-card team-b"><header>🔵 Time Azul</header><div id="team-b"></div></article>
+          <article class="team-card team-c"><header>🟠 Time Laranja</header><div id="team-c"></div></article>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab" id="tab-sponsors">
+      <article class="card glass sponsors-header compact-head">
+        <div class="section-kicker">Parceiros</div>
+        <div class="card-title">Patrocinadores</div>
+      </article>
+      <div class="sponsor-stack" id="sponsor-stack"></div>
+    </section>
+  </main>
+
+  <button class="fab" id="admin-fab" aria-label="Abrir painel administrativo">
+    <span>⚙️</span>
+    <span class="fab-badge hidden" id="pending-badge">0</span>
+  </button>
+
+  <div class="modal-backdrop hidden" id="auth-modal">
+    <div class="modal panel glass">
+      <div class="modal-head">
+        <h2>Acesso administrativo</h2>
+        <button class="icon-btn" data-close="auth-modal">✕</button>
+      </div>
+      <div class="form-grid">
+        <label>
+          <span>Usuário ou email</span>
+          <input type="text" id="auth-username" placeholder="itamar" />
+        </label>
+        <label>
+          <span>Senha</span>
+          <input type="password" id="auth-password" placeholder="••••••••" />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="auth-login-btn">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="admin-modal">
+    <div class="modal panel wide glass">
+      <div class="modal-head">
+        <div>
+          <h2>Painel administrativo</h2>
+          <div class="admin-status" id="admin-status">Carregando status…</div>
+        </div>
+        <div class="inline-actions">
+          <button class="btn btn-secondary btn-sm" id="admin-logout-btn">Sair</button>
+          <button class="icon-btn" data-close="admin-modal">✕</button>
+        </div>
+      </div>
+
+      <div class="admin-layout">
+        <section class="admin-section">
+          <div class="admin-section-title">Solicitações pendentes</div>
+          <div id="pending-list" class="pending-list"></div>
+          <div class="empty-state hidden" id="pending-empty">Nenhuma solicitação pendente.</div>
+        </section>
+
+        <section class="admin-section">
+          <div class="admin-section-title">Rodada e pagamento</div>
+          <div class="form-grid two-col">
+            <label><span>Data do jogo</span><input id="cfg-game-date" type="date" /></label>
+            <label><span>Link de pagamento</span><input id="cfg-payment-url" type="url" placeholder="https://tikkie.me/..." /></label>
+            <label><span>Chegada</span><input id="cfg-arrival" type="time" /></label>
+            <label><span>Início</span><input id="cfg-start" type="time" /></label>
+            <label><span>Fim</span><input id="cfg-end" type="time" /></label>
+            <label><span>Máx. vagas</span><input id="cfg-max-slots" type="number" min="6" max="30" /></label>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="save-config-btn">Salvar</button>
+            <button class="btn btn-secondary" id="sync-now-btn">Sincronizar agora</button>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <div class="admin-section-title">Adicionar jogador</div>
+          <div class="form-grid two-col">
+            <label><span>Nome</span><input id="admin-player-name" type="text" placeholder="Nome ou apelido" /></label>
+            <label><span>Vaga</span><select id="admin-player-slot"></select></label>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="add-player-btn">Adicionar à lista</button>
+            <button class="btn btn-danger" id="clear-list-btn">Limpar rodada</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="signup-modal">
+    <div class="modal panel glass">
+      <div class="modal-head">
+        <h2>Enviar solicitação</h2>
+        <button class="icon-btn" data-close="signup-modal">✕</button>
+      </div>
+      <div class="form-grid two-col">
+        <label><span>Seu nome</span><input id="signup-name" type="text" placeholder="Nome ou apelido" /></label>
+        <label><span>Vaga</span><select id="signup-slot"></select></label>
+      </div>
+      <label class="upload-box" for="receipt-input" id="upload-box">
+        <input type="file" id="receipt-input" accept="image/*" hidden />
+        <span class="upload-title">Anexar comprovante</span>
+        <span class="upload-sub">Print do Tikkie, banco ou PayPal</span>
+        <img id="receipt-preview" class="hidden" alt="Preview do comprovante" />
+      </label>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="submit-signup-btn">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="captains-modal">
+    <div class="modal panel glass">
+      <div class="modal-head">
+        <h2>Escolher capitães</h2>
+        <button class="icon-btn" data-close="captains-modal">✕</button>
+      </div>
+      <p class="subcopy">Selecione exatamente 3 capitães.</p>
+      <div class="captains-list" id="captains-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="generate-teams-btn">Gerar times</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
