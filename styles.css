@@ -703,6 +703,17 @@ input:focus {
   box-shadow: none;
 }
 
+.club-logo {
+  width: 116px;
+  height: auto;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+  transition: transform 0.2s ease;
+}
+.club-logo:hover {
+  transform: scale(1.06);
+}
+
 .club-badge {
   width: 116px;
   height: 140px;
@@ -776,6 +787,10 @@ input:focus {
 @media (max-width: 800px) {
   .brand-wrap {
     align-items: flex-start;
+  }
+
+  .club-logo {
+    width: 88px;
   }
 
   .club-badge {

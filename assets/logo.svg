@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 265" width="220" height="265">
+  <defs>
+    <linearGradient id="shieldBg" x1="5%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d4d34"/>
+      <stop offset="45%" stop-color="#0f2a1e"/>
+      <stop offset="100%" stop-color="#081911"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe55a"/>
+      <stop offset="100%" stop-color="#e8a000"/>
+    </linearGradient>
+    <radialGradient id="ballGrad" cx="38%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#3de87e"/>
+      <stop offset="100%" stop-color="#0f7a38"/>
+    </radialGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2ecc71" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#2ecc71" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="textglow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="goldglow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Gold outer shield -->
+  <path d="M10,10 L210,10 L210,159.0 Q210,235.5 110.0,255 Q10,235.5 10,159.0 Z" fill="url(#goldGrad)" filter="url(#shadow)"/>
+  
+  <!-- Dark 1px inset separator -->
+  <path d="M15,15 L205,15 L205,159.0 Q205,234.0 110.0,250 Q15,234.0 15,159.0 Z" fill="#0a1f14"/>
+  
+  <!-- Main dark shield -->
+  <path d="M17,17 L203,17 L203,159.0 Q203,233.39999999999998 110.0,248 Q17,233.39999999999998 17,159.0 Z" fill="url(#shieldBg)"/>
+
+  <!-- Inner gold fine border -->
+  <path d="M28,28 L192,28 L192,159.0 Q192,230.1 110.0,237 Q28,230.1 28,159.0 Z" fill="none" stroke="url(#goldGrad)" stroke-width="1" opacity="0.5"/>
+
+  <!-- Top gold band background -->
+  <rect x="18" y="38" width="184" height="36" rx="3" fill="rgba(0,0,0,0.35)"/>
+  <rect x="18" y="38" width="184" height="36" rx="3"
+        fill="none" stroke="url(#goldGrad)" stroke-width="1" opacity="0.5"/>
+
+  <!-- Stars above band -->
+  <path d="M88.00,22.50 L89.47,25.98 L93.23,26.30 L90.38,28.77 L91.23,32.45 L88.00,30.50 L84.77,32.45 L85.62,28.77 L82.77,26.30 L86.53,25.98 Z" fill="url(#goldGrad)" filter="url(#goldglow)"/>
+  <path d="M110.00,15.00 L111.76,19.57 L116.66,19.84 L112.85,22.93 L114.11,27.66 L110.00,25.00 L105.89,27.66 L107.15,22.93 L103.34,19.84 L108.24,19.57 Z" fill="url(#goldGrad)" filter="url(#goldglow)"/>
+  <path d="M132.00,22.50 L133.47,25.98 L137.23,26.30 L134.38,28.77 L135.23,32.45 L132.00,30.50 L128.77,32.45 L129.62,28.77 L126.77,26.30 L130.53,25.98 Z" fill="url(#goldGrad)" filter="url(#goldglow)"/>
+
+  <!-- BRAZUKAS -->
+  <text x="110.0" y="63"
+        text-anchor="middle"
+        fill="url(#goldGrad)"
+        font-family="Arial Black, Impact, sans-serif"
+        font-size="21" font-weight="900" letter-spacing="5"
+        filter="url(#goldglow)">BRAZUKAS</text>
+
+  <!-- Divider line below top band -->
+  <line x1="18" y1="77" x2="202" y2="77" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Radial glow behind ball -->
+  <circle cx="110.0" cy="124.5" r="70" fill="url(#centerGlow)"/>
+
+  <!-- Ball circle -->
+  <circle cx="110.0" cy="124.5" r="54" fill="url(#ballGrad)" opacity="0.22"/>
+  <circle cx="110.0" cy="124.5" r="54"
+          fill="none" stroke="#2ecc71" stroke-width="2" opacity="0.85"/>
+
+  <!-- Football pattern -->
+  <path d="M110.0,107.3 L126.4,119.2 L120.2,138.5 L99.8,138.5 L93.6,119.2 Z" fill="rgba(0,0,0,0.7)" stroke="#2ecc71" stroke-width="0.8" opacity="0.8"/>
+  <path d="M110.0,78.6 L120.8,86.5 L116.7,99.2 L103.3,99.2 L99.2,86.5 Z" fill="rgba(0,0,0,0.55)" stroke="#2ecc71" stroke-width="0.7" opacity="0.7"/><path d="M153.7,110.4 L149.5,123.0 L136.2,123.0 L132.1,110.4 L142.9,102.5 Z" fill="rgba(0,0,0,0.55)" stroke="#2ecc71" stroke-width="0.7" opacity="0.7"/><path d="M137.0,161.7 L123.6,161.7 L119.5,149.0 L130.3,141.2 L141.1,149.0 Z" fill="rgba(0,0,0,0.55)" stroke="#2ecc71" stroke-width="0.7" opacity="0.7"/><path d="M83.0,161.7 L78.9,149.0 L89.7,141.2 L100.5,149.0 L96.4,161.7 Z" fill="rgba(0,0,0,0.55)" stroke="#2ecc71" stroke-width="0.7" opacity="0.7"/><path d="M66.3,110.4 L77.1,102.5 L87.9,110.4 L83.8,123.0 L70.5,123.0 Z" fill="rgba(0,0,0,0.55)" stroke="#2ecc71" stroke-width="0.7" opacity="0.7"/>
+
+  <!-- FC text -->
+  <text x="110.0" y="140.6"
+        text-anchor="middle"
+        fill="#f3f7f4"
+        font-family="Arial Black, Impact, sans-serif"
+        font-size="44" font-weight="900" letter-spacing="-1"
+        filter="url(#textglow)">FC</text>
+
+  <!-- Flanking stars -->
+  <path d="M40.00,117.55 L41.76,122.12 L46.66,122.39 L42.85,125.48 L44.11,130.21 L40.00,127.55 L35.89,130.21 L37.15,125.48 L33.34,122.39 L38.24,122.12 Z" fill="url(#goldGrad)" opacity="0.8"/>
+  <path d="M180.00,117.55 L181.76,122.12 L186.66,122.39 L182.85,125.48 L184.11,130.21 L180.00,127.55 L175.89,130.21 L177.15,125.48 L173.34,122.39 L178.24,122.12 Z" fill="url(#goldGrad)" opacity="0.8"/>
+
+  <!-- Divider line above Groningen -->
+  <line x1="18" y1="205.4" x2="202" y2="205.4" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Bottom band bg -->
+  <rect x="18" y="207" width="184" height="33" rx="3" fill="rgba(46,204,113,0.08)"/>
+
+  <!-- GRONINGEN -->
+  <text x="110.0" y="226.6"
+        text-anchor="middle"
+        fill="#2ecc71"
+        font-family="Arial Black, Impact, sans-serif"
+        font-size="15" font-weight="900" letter-spacing="5">GRONINGEN</text>
+
+</svg>
