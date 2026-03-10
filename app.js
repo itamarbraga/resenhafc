@@ -174,7 +174,7 @@ function renderBrazilMap(list, svgId, legendId) {
   const intlCount = counts['INTL'] || 0;
 
   if (!active.length && !intlCount) {
-    legend.innerHTML = '<span class="map-legend-empty">Nenhum estado representado ainda.</span>';
+    legend.innerHTML = '<span class="map-legend-empty">Nenhum estado representado ainda.<br>Os estados vão acender conforme as pessoas se cadastrarem.</span>';
     return;
   }
 
@@ -201,17 +201,15 @@ function renderBrazilMap(list, svgId, legendId) {
 }
 
 function renderMaps(members, approvedPlayers) {
-  // Game map — confirmed members with state
+  // Game map — always show; lights up as members with state are confirmed
   const gameBlock = $('game-map-block');
-  const hasMemberStates = (members || []).some((m) => m.state);
-  if (gameBlock) gameBlock.style.display = hasMemberStates ? '' : 'none';
-  if (hasMemberStates) renderBrazilMap(members, 'game-map-svg', 'game-map-legend');
+  if (gameBlock) gameBlock.style.display = '';
+  renderBrazilMap(members || [], 'game-map-svg', 'game-map-legend');
 
-  // Members map — all approved players
+  // Members map — always show
   const membersSection = $('members-map-section');
-  const hasPlayerStates = (approvedPlayers || []).length > 0;
-  if (membersSection) membersSection.style.display = hasPlayerStates ? '' : 'none';
-  if (hasPlayerStates) renderBrazilMap(approvedPlayers, 'members-map-svg', 'members-map-legend');
+  if (membersSection) membersSection.style.display = '';
+  renderBrazilMap(approvedPlayers || [], 'members-map-svg', 'members-map-legend');
 }
 
 
