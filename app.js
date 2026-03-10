@@ -569,6 +569,23 @@ function attachEvents() {
 async function bootstrap() {
   attachEvents();
   initPhotoUpload();
+
+  // Triple-click on logo opens admin (hidden entry point)
+  const logo = document.querySelector('.club-logo');
+  if (logo) {
+    let clickCount = 0, clickTimer = null;
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => {
+      clickCount++;
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => { clickCount = 0; }, 600);
+      if (clickCount >= 3) {
+        clickCount = 0;
+        openAdmin();
+      }
+    });
+  }
+
   await loadPublicState();
   try {
     await loadAdminState();
