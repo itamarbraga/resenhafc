@@ -397,12 +397,24 @@ function initPhotoUpload() {
     input.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
+      // Show processing state
+      const instructions = area.querySelector('.photo-upload-instructions span');
+      if (instructions) instructions.textContent = 'Processando…';
+
       const reader = new FileReader();
       reader.onload = (ev) => processPhoto(ev.target.result, canvas, () => {
         area.classList.add('has-photo');
         $('photo-preview-wrap').style.display = 'flex';
+        $('photo-upload-area')?.querySelector('.photo-upload-instructions')?.style.setProperty('display', 'none');
         if (regBtn) regBtn.disabled = false;
+        // Reset input so same file can be re-selected if needed
+        input.value = '';
       });
+      reader.onerror = () => {
+        if (instructions) instructions.textContent = 'Toque para escolher uma foto';
+        input.value = '';
+      };
       reader.readAsDataURL(file);
     });
   }
@@ -410,7 +422,6 @@ function initPhotoUpload() {
   // Payment proof (no crop, just compress)
   const proofArea  = $('proof-upload-area');
   const proofInput = $('proof-input');
-  const joinBtn    = $('join-submit-btn');
   if (proofArea && proofInput) {
     proofArea.addEventListener('click', () => proofInput.click());
     proofInput.addEventListener('change', (e) => {
@@ -426,9 +437,11 @@ function initPhotoUpload() {
           $('proof-preview-wrap').style.display = 'flex';
           $('proof-instructions').style.display = 'none';
           proofArea.classList.add('has-photo');
+          proofInput.value = '';
           updateJoinSubmitState();
         });
       };
+      reader.onerror = () => { proofInput.value = ''; };
       reader.readAsDataURL(file);
     });
   }
@@ -541,9 +554,20 @@ async function submitRegisterForm(event) {
     feedback.style.color = 'var(--green)';
     feedback.textContent = '✓ Cadastro enviado! Aguarde a aprovação do admin para entrar na lista.';
     $('register-form').reset();
+    // Fully reset photo state
     photoState.dataUrl = null;
-    $('photo-upload-area')?.classList.remove('has-photo');
-    $('photo-canvas')?.getContext('2d').clearRect(0, 0, 120, 120);
+    const area = $('photo-upload-area');
+    if (area) {
+      area.classList.remove('has-photo');
+      const instr = area.querySelector('.photo-upload-instructions');
+      if (instr) instr.style.display = '';
+      const instrSpan = area.querySelector('.photo-upload-instructions span');
+      if (instrSpan) instrSpan.textContent = 'Toque para escolher uma foto';
+    }
+    const previewWrap = $('photo-preview-wrap');
+    if (previewWrap) previewWrap.style.display = 'none';
+    const canvas = $('photo-canvas');
+    if (canvas) canvas.getContext('2d').clearRect(0, 0, 120, 120);
     btn.disabled = true;
     btn.textContent = 'Cadastrar perfil';
   } catch (err) {
@@ -578,7 +602,10 @@ async function submitJoinForm(event) {
     $('proof-upload-area')?.classList.remove('has-photo');
     const img = $('proof-preview-img');
     if (img) { img.src = ''; img.style.display = 'none'; }
-    $('proof-instructions').style.display = '';
+    const proofInstr = $('proof-instructions');
+    if (proofInstr) proofInstr.style.display = '';
+    const proofPreview = $('proof-preview-wrap');
+    if (proofPreview) proofPreview.style.display = 'none';
     $('join-player-select').value = '';
     btn.disabled = true;
     btn.textContent = 'Entrar na lista';
