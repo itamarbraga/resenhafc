@@ -300,8 +300,10 @@ export async function listSponsors(env) {
   }));
 }
 
-export async function replaceTeams(env, teams) {
+export async function replaceTeams(env, teams, benchTeam = null) {
   await env.DB.exec('DELETE FROM teams');
+  await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('benchTeam', ?1)")
+    .bind(benchTeam || '').run();
 
   for (const [teamKey, players] of Object.entries(teams)) {
     for (let i = 0; i < players.length; i += 1) {
@@ -319,14 +321,19 @@ export async function listTeams(env) {
     'SELECT team_key, player_name, sort_order FROM teams ORDER BY team_key ASC, sort_order ASC, id ASC'
   ).all();
 
-  const teams = { A: [], B: [], C: [] };
+  const benchRow = await env.DB
+    .prepare("SELECT value FROM settings WHERE key = 'benchTeam'")
+    .first();
+  const benchTeam = benchRow?.value || null;
+
+  const teams = { Vermelho: [], Amarelo: [], Azul: [] };
 
   for (const row of rows.results || []) {
-    teams[row.team_key] = teams[row.team_key] || [];
+    if (!teams[row.team_key]) teams[row.team_key] = [];
     teams[row.team_key].push(row.player_name);
   }
 
-  return teams;
+  return { teams, benchTeam };
 }
 
 export async function getSession(env, token) {
@@ -426,7 +433,7 @@ export async function playerExists(env, firstName, lastName) {
 }
 
 export async function buildPublicState(env) {
-  const [config, members, sponsors, teams, stats, approvedPlayers] = await Promise.all([
+  const [config, members, sponsors, teamsData, stats, approvedPlayers] = await Promise.all([
     getConfig(env),
     listMembers(env, 'confirmed'),
     listSponsors(env),
@@ -439,7 +446,8 @@ export async function buildPublicState(env) {
     config,
     members,
     sponsors,
-    teams,
+    teams: teamsData.teams,
+    benchTeam: teamsData.benchTeam,
     stats,
     approvedPlayers,
     storage: 'Cloudflare Pages + D1 ativo',

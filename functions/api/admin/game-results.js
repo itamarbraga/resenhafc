@@ -39,7 +39,8 @@ export async function onRequestPost(context) {
     }
 
     // Get current team rosters to distribute minutes
-    const currentTeams = await listTeams(context.env);
+    const teamsData = await listTeams(context.env);
+    const currentTeams = teamsData.teams;
 
     const gameDayId = await saveGameDay(
       context.env,

@@ -55,7 +55,7 @@ function renderPublic() {
   const data = state.publicData;
   if (!data) return;
 
-  const { config, members, sponsors, teams, storage, stats, approvedPlayers } = data;
+  const { config, members, sponsors, teams, benchTeam, storage, stats, approvedPlayers } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
   $('hero-arrival').textContent = `Chegada ${config.arrivalTime}`;
   $('hero-window').textContent = `${config.startTime} — ${config.endTime}`;
@@ -79,7 +79,7 @@ function renderPublic() {
 
   renderConfirmed(members, config.maxSlots);
   renderSponsors(sponsors);
-  renderTeams(teams);
+  renderTeams(teams, benchTeam);
   renderRankings(stats);
   populatePlayerDropdown(approvedPlayers || []);
   startCountdown(config.gameDate, config.startTime);
@@ -168,11 +168,17 @@ function renderSponsors(sponsors) {
   });
 }
 
-function renderTeams(teams) {
-  const grid = $('teams-grid');
+const TEAM_CONFIG = {
+  Vermelho: { label: '🔴 Time Vermelho', id: 'team-vermelho', cardClass: 'team-card--vermelho' },
+  Amarelo:  { label: '🟡 Time Amarelo',  id: 'team-amarelo',  cardClass: 'team-card--amarelo'  },
+  Azul:     { label: '🔵 Time Azul',     id: 'team-azul',     cardClass: 'team-card--azul'     },
+};
+
+function renderTeams(teams, benchTeam) {
+  const grid  = $('teams-grid');
   const empty = $('teams-empty');
-  const keys = ['A', 'B', 'C'];
-  const hasTeams = keys.some((key) => teams[key] && teams[key].length);
+  const keys  = ['Vermelho', 'Amarelo', 'Azul'];
+  const hasTeams = keys.some((k) => teams[k] && teams[k].length);
 
   if (!hasTeams) {
     grid.classList.add('hidden');
@@ -184,12 +190,23 @@ function renderTeams(teams) {
   empty.classList.add('hidden');
 
   keys.forEach((key) => {
-    const target = document.getElementById(`team-${key.toLowerCase()}`);
+    const cfg    = TEAM_CONFIG[key];
+    const target = $(cfg.id);
+    const card   = target.closest('.team-card');
+    const isBench = benchTeam === key;
+
+    // Mark bench team
+    card.classList.toggle('team-card--bench', isBench);
+
+    // Bench badge on header
+    const header = card.querySelector('.team-header');
+    header.innerHTML = cfg.label + (isBench ? ' <span class="bench-badge">aguarda</span>' : '');
+
     target.innerHTML = '';
-    (teams[key] || []).forEach((player) => {
+    (teams[key] || []).forEach((player, i) => {
       const row = document.createElement('div');
       row.className = 'team-player';
-      row.innerHTML = `<strong>${escapeHtml(player)}</strong>`;
+      row.innerHTML = `<span class="team-player-num">${i + 1}</span><strong>${escapeHtml(player)}</strong>`;
       target.appendChild(row);
     });
   });
@@ -844,9 +861,9 @@ async function saveGameResults() {
   if (!gameDate) { feedback.textContent = 'Selecione a data do jogo.'; return; }
 
   const teamResults = {
-    A: { wins: Number($('gr-wins-A').value || 0), losses: Number($('gr-losses-A').value || 0) },
-    B: { wins: Number($('gr-wins-B').value || 0), losses: Number($('gr-losses-B').value || 0) },
-    C: { wins: Number($('gr-wins-C').value || 0), losses: Number($('gr-losses-C').value || 0) },
+    Vermelho: { wins: Number($('gr-wins-Vermelho').value || 0), losses: Number($('gr-losses-Vermelho').value || 0) },
+    Amarelo:  { wins: Number($('gr-wins-Amarelo').value  || 0), losses: Number($('gr-losses-Amarelo').value  || 0) },
+    Azul:     { wins: Number($('gr-wins-Azul').value     || 0), losses: Number($('gr-losses-Azul').value     || 0) },
   };
 
   // Collect goals
@@ -870,7 +887,7 @@ async function saveGameResults() {
     feedback.textContent = '✓ Resultado salvo com sucesso!';
     // Reset counters
     document.querySelectorAll('.gr-count-val').forEach((el) => { el.textContent = '0'; });
-    ['A', 'B', 'C'].forEach((t) => {
+    ['Vermelho', 'Amarelo', 'Azul'].forEach((t) => {
       $(`gr-wins-${t}`).value = '0';
       $(`gr-losses-${t}`).value = '0';
     });

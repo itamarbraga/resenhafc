@@ -645,26 +645,66 @@ input:focus {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.035);
   overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.team-card--bench {
+  opacity: 0.6;
+  border-style: dashed;
 }
 
 .team-header {
   padding: 14px 16px;
-  background: rgba(46, 204, 113, 0.12);
   border-bottom: 1px solid var(--border);
   font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-header--vermelho { background: rgba(231, 76, 60, 0.15); color: #ff7f7f; }
+.team-header--amarelo  { background: rgba(241, 196, 15, 0.15); color: #f4c542; }
+.team-header--azul     { background: rgba(52, 152, 219, 0.15); color: #7ec8f7; }
+
+.team-card--vermelho { border-color: rgba(231, 76, 60, 0.25); }
+.team-card--amarelo  { border-color: rgba(241, 196, 15, 0.25); }
+.team-card--azul     { border-color: rgba(52, 152, 219, 0.25); }
+
+.bench-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .team-body {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  gap: 8px;
+  padding: 14px;
 }
 
 .team-player {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.045);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team-player-num {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--muted);
+  width: 16px;
+  text-align: right;
+  flex: 0 0 auto;
 }
 
 .empty-state {
@@ -1163,9 +1203,9 @@ input:focus {
   border-radius: 6px;
 }
 
-.team-a-label { color: #60c0f0; background: rgba(96,192,240,0.1); }
-.team-b-label { color: #f0a040; background: rgba(240,160,64,0.1); }
-.team-c-label { color: #9f80f0; background: rgba(159,128,240,0.1); }
+.team-vermelho-label { color: #ff7f7f; background: rgba(231,76,60,0.12); }
+.team-amarelo-label  { color: #f4c542; background: rgba(241,196,15,0.12); }
+.team-azul-label     { color: #7ec8f7; background: rgba(52,152,219,0.12); }
 
 .gr-goals-grid {
   display: flex;

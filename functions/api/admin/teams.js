@@ -2,32 +2,55 @@ import { buildPublicState, initializeDb, listMembers, replaceTeams } from '../li
 import { requireAdmin } from '../lib/auth.js';
 import { error, json, shuffle } from '../lib/helpers.js';
 
+const TEAM_KEYS  = ['Vermelho', 'Amarelo', 'Azul'];
+const FULL_SIZE  = 5; // players per team for a full match
+const MIN_TOTAL  = 6; // minimum to generate teams
+
 function buildTeamsFromMembers(members, captainIds) {
-  if (members.length < 6) {
-    throw new Error('É preciso ter pelo menos 6 confirmados para gerar times.');
+  if (members.length < MIN_TOTAL) {
+    throw new Error('É preciso ter pelo menos 6 confirmados para gerar os times.');
   }
 
+  // Pick captains (one per team)
   const idsSet = new Set(captainIds.map(Number));
-  const selectedCaptains = members.filter((member) => idsSet.has(member.id)).slice(0, 3);
-  const fallbackCaptains = members.filter((member) => !idsSet.has(member.id)).slice(0, Math.max(0, 3 - selectedCaptains.length));
-  const captains = [...selectedCaptains, ...fallbackCaptains].slice(0, 3);
+  const selectedCaptains = members.filter((m) => idsSet.has(m.id)).slice(0, 3);
+  const fallback = members.filter((m) => !idsSet.has(m.id));
+  const shuffledFallback = shuffle(fallback);
+  const captains = [
+    ...selectedCaptains,
+    ...shuffledFallback.slice(0, Math.max(0, 3 - selectedCaptains.length)),
+  ].slice(0, 3);
 
   if (captains.length < 3) {
-    throw new Error('Selecione ou mantenha pelo menos 3 jogadores disponíveis para capitães.');
+    throw new Error('São necessários pelo menos 3 jogadores para os capitães.');
   }
 
-  const remaining = shuffle(members.filter((member) => !captains.some((captain) => captain.id === member.id)));
+  const captainIds_ = new Set(captains.map((c) => c.id));
+  const remaining = shuffle(members.filter((m) => !captainIds_.has(m.id)));
+
+  // Start each team with its captain
   const teams = {
-    A: [captains[0].name],
-    B: [captains[1].name],
-    C: [captains[2].name],
+    Vermelho: [captains[0].name],
+    Amarelo:  [captains[1].name],
+    Azul:     [captains[2].name],
   };
 
-  const order = ['A', 'B', 'C'];
+  // Distribute 1-by-1: Vermelho → Amarelo → Azul → repeat
   remaining.forEach((member, index) => {
-    teams[order[index % order.length]].push(member.name);
+    teams[TEAM_KEYS[index % 3]].push(member.name);
   });
-  return teams;
+
+  // Determine which team starts on the bench (fewest players when total < 15)
+  const total = members.length;
+  let benchTeam = null;
+  if (total < 15) {
+    // The team with fewest players sits out first
+    const sizes = TEAM_KEYS.map((k) => ({ key: k, size: teams[k].length }));
+    sizes.sort((a, b) => a.size - b.size);
+    benchTeam = sizes[0].key;
+  }
+
+  return { teams, benchTeam };
 }
 
 export async function onRequestPost(context) {
@@ -38,8 +61,8 @@ export async function onRequestPost(context) {
 
     const body = await context.request.json();
     const members = await listMembers(context.env, 'confirmed');
-    const teams = buildTeamsFromMembers(members, body.captainIds || []);
-    await replaceTeams(context.env, teams);
+    const { teams, benchTeam } = buildTeamsFromMembers(members, body.captainIds || []);
+    await replaceTeams(context.env, teams, benchTeam);
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
     return error(err.message || 'Não foi possível gerar os times.', err.message === 'Sessão expirada.' ? 401 : 500);
