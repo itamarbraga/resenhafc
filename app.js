@@ -140,12 +140,12 @@ const STATE_HUES = (() => {
 })();
 
 function stateColor(code, count) {
-  if (code === 'INTL') return null; // drawn separately
+  if (code === 'INTL') return null;
   const h = STATE_HUES[code] ?? 200;
-  if (!count) return `hsla(${h},18%,38%,0.35)`;
+  if (!count) return `hsla(${h},22%,52%,0.55)`;  // more visible on dark bg
   const lightness = Math.min(72, 52 + count * 4);
   const sat       = Math.min(90, 60 + count * 6);
-  return `hsla(${h},${sat}%,${lightness}%,0.92)`;
+  return `hsla(${h},${sat}%,${lightness}%,0.95)`;
 }
 
 function buildStateCounts(list) {
@@ -169,10 +169,14 @@ function renderBrazilMap(list, svgId, legendId) {
   svg.innerHTML   = '';
   legend.innerHTML = '';
 
-  // Background rectangle
+  // Dark background rect so SVG area is always visible
   const bg = document.createElementNS(ns, 'rect');
-  bg.setAttribute('width', '520'); bg.setAttribute('height', '560');
-  bg.setAttribute('fill', 'transparent');
+  bg.setAttribute('width', '520');
+  bg.setAttribute('height', '560');
+  bg.setAttribute('rx', '12');
+  bg.setAttribute('fill', 'rgba(255,255,255,0.03)');
+  bg.setAttribute('stroke', 'rgba(255,255,255,0.06)');
+  bg.setAttribute('stroke-width', '1');
   svg.appendChild(bg);
 
   // Draw each state

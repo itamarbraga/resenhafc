@@ -1520,6 +1520,9 @@ select option {
   flex: 0 0 auto;
   width: min(300px, 90vw);
   height: auto;
+  aspect-ratio: 520 / 560;
+  min-height: 200px;
+  display: block;
   filter: drop-shadow(0 2px 18px rgba(0,0,0,0.45));
 }
 
