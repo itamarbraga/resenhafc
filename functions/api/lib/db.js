@@ -94,6 +94,9 @@ export async function initializeDb(env) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
+      username TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL DEFAULT '',
+      password_salt TEXT NOT NULL DEFAULT '',
       phone TEXT,
       state TEXT NOT NULL,
       photo_data TEXT NOT NULL,
@@ -138,6 +141,9 @@ export async function initializeDb(env) {
   await ensureColumn(env, 'members', 'photo_data', 'photo_data TEXT');
   await ensureColumn(env, 'members', 'player_id', 'player_id INTEGER');
   await ensureColumn(env, 'members', 'payment_proof', 'payment_proof TEXT');
+  await ensureColumn(env, 'players', 'username', "username TEXT NOT NULL DEFAULT ''");
+  await ensureColumn(env, 'players', 'password_hash', "password_hash TEXT NOT NULL DEFAULT ''");
+  await ensureColumn(env, 'players', 'password_salt', "password_salt TEXT NOT NULL DEFAULT ''");
 
   for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
     await env.DB.prepare(
@@ -372,15 +378,41 @@ export async function deleteSession(env, token) {
 
 // ─── Player profiles ─────────────────────────────────────────────────────────
 
-export async function registerPlayer(env, { firstName, lastName, phone, state, photoData }) {
+export async function registerPlayer(env, { firstName, lastName, username, passwordHash, passwordSalt, phone, state, photoData }) {
   const result = await env.DB.prepare(
-    'INSERT INTO players (first_name, last_name, phone, state, photo_data, status) VALUES (?1,?2,?3,?4,?5,?6)'
-  ).bind(firstName, lastName, phone || '', state, photoData, 'pending').run();
+    'INSERT INTO players (first_name, last_name, username, password_hash, password_salt, phone, state, photo_data, status) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)'
+  ).bind(firstName, lastName, username, passwordHash, passwordSalt, phone || '', state, photoData, 'pending').run();
   return result.meta.last_row_id;
 }
 
+export async function usernameExists(env, username) {
+  const row = await env.DB
+    .prepare('SELECT id FROM players WHERE lower(username) = ?1 LIMIT 1')
+    .bind(username.toLowerCase()).first();
+  return Boolean(row?.id);
+}
+
+export async function getPlayerByUsername(env, username) {
+  const row = await env.DB
+    .prepare('SELECT id, first_name, last_name, phone, state, photo_data, status, password_hash, password_salt FROM players WHERE lower(username) = ?1 LIMIT 1')
+    .bind(username.toLowerCase()).first();
+  if (!row) return null;
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    fullName: `${row.first_name} ${row.last_name}`,
+    phone: row.phone || '',
+    state: row.state,
+    photoData: row.photo_data || null,
+    status: row.status,
+    passwordHash: row.password_hash,
+    passwordSalt: row.password_salt,
+  };
+}
+
 export async function listPlayers(env, status = null) {
-  let query = 'SELECT id, first_name, last_name, phone, state, photo_data, status, created_at FROM players';
+  let query = 'SELECT id, first_name, last_name, username, phone, state, photo_data, status, created_at FROM players';
   const binds = [];
   if (status) { query += ' WHERE status = ?1'; binds.push(status); }
   query += ' ORDER BY first_name ASC, last_name ASC';
@@ -391,6 +423,7 @@ export async function listPlayers(env, status = null) {
     firstName: r.first_name,
     lastName: r.last_name,
     fullName: `${r.first_name} ${r.last_name}`,
+    username: r.username || '',
     phone: r.phone || '',
     state: r.state,
     photoData: r.photo_data || null,

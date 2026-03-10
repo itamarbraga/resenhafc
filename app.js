@@ -120,7 +120,6 @@ function renderPublic() {
   renderSponsors(sponsors);
   renderTeams(teams, benchTeam);
   renderRankings(stats);
-  populatePlayerDropdown(approvedPlayers || []);
   startCountdown(config.gameDate, config.startTime);
 }
 
@@ -510,20 +509,7 @@ function compressImage(srcDataUrl, maxDim, quality, callback) {
 
 function updateJoinSubmitState() {
   const btn = $('join-submit-btn');
-  const playerSelected = $('join-player-select')?.value;
-  if (btn) btn.disabled = !(playerSelected && proofState.dataUrl);
-}
-
-function populatePlayerDropdown(players) {
-  const sel = $('join-player-select');
-  if (!sel) return;
-  if (!players || !players.length) {
-    sel.innerHTML = '<option value="">Nenhum jogador aprovado ainda</option>';
-    return;
-  }
-  sel.innerHTML = '<option value="">Selecione seu perfil...</option>' +
-    players.map((p) => `<option value="${p.id}">${escapeHtml(p.fullName)} — ${p.state}</option>`).join('');
-  sel.addEventListener('change', updateJoinSubmitState);
+  if (btn) btn.disabled = !proofState.dataUrl;
 }
 
 function processPhoto(srcDataUrl, canvas, onDone) {
@@ -614,13 +600,55 @@ async function submitRegisterForm(event) {
   }
 }
 
+const joinState = { playerId: null };
+
+async function submitJoinLogin(event) {
+  event.preventDefault();
+  const feedback = $('join-login-feedback');
+  const btn      = $('join-login-btn');
+  feedback.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+
+  try {
+    const username = $('join-username').value.trim();
+    const password = $('join-password').value.trim();
+    const { player } = await request('/api/verify-player', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+
+    // Store verified player id for the proof step
+    joinState.playerId = player.id;
+
+    // Show avatar + name
+    const avatarWrap = $('join-player-avatar-wrap');
+    if (player.photoData) {
+      avatarWrap.innerHTML = `<img class="join-player-avatar" src="${player.photoData}" alt="${escapeHtml(player.fullName)}" />`;
+    } else {
+      avatarWrap.innerHTML = `<div class="join-player-avatar join-player-avatar-fallback">${escapeHtml(player.firstName.charAt(0))}</div>`;
+    }
+    $('join-player-name').textContent = player.fullName;
+
+    // Transition to proof step
+    $('join-step-login').classList.add('hidden');
+    $('join-step-proof').classList.remove('hidden');
+
+    feedback.textContent = '';
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
 async function submitJoinForm(event) {
   event.preventDefault();
   const feedback = $('join-feedback');
-  const btn = $('join-submit-btn');
-  const playerId = Number($('join-player-select').value);
+  const btn      = $('join-submit-btn');
 
-  if (!playerId) { feedback.textContent = 'Selecione seu perfil.'; return; }
+  if (!joinState.playerId) { feedback.textContent = 'Sessão expirada. Faça login novamente.'; return; }
   if (!proofState.dataUrl) { feedback.textContent = 'Anexe o comprovante de pagamento.'; return; }
 
   btn.disabled = true;
@@ -630,10 +658,13 @@ async function submitJoinForm(event) {
   try {
     await request('/api/join', {
       method: 'POST',
-      body: JSON.stringify({ playerId, paymentProof: proofState.dataUrl }),
+      body: JSON.stringify({ playerId: joinState.playerId, paymentProof: proofState.dataUrl }),
     });
     feedback.style.color = 'var(--green)';
     feedback.textContent = '✓ Pedido enviado! Aguarde a aprovação do admin.';
+
+    // Full reset of join flow
+    joinState.playerId = null;
     proofState.dataUrl = null;
     $('proof-upload-area')?.classList.remove('has-photo');
     const img = $('proof-preview-img');
@@ -642,7 +673,9 @@ async function submitJoinForm(event) {
     if (proofInstr) proofInstr.style.display = '';
     const proofPreview = $('proof-preview-wrap');
     if (proofPreview) proofPreview.style.display = 'none';
-    $('join-player-select').value = '';
+    $('join-login-form')?.reset();
+    $('join-step-login').classList.remove('hidden');
+    $('join-step-proof').classList.add('hidden');
     btn.disabled = true;
     btn.textContent = 'Entrar na lista';
     await loadPublicState();
@@ -1099,7 +1132,16 @@ async function saveGameResults() {
 
 function attachEvents() {
   $('register-form').addEventListener('submit', submitRegisterForm);
+  $('join-login-form').addEventListener('submit', submitJoinLogin);
   $('join-form').addEventListener('submit', submitJoinForm);
+  $('join-change-user-btn').addEventListener('click', () => {
+    joinState.playerId = null;
+    $('join-step-proof').classList.add('hidden');
+    $('join-step-login').classList.remove('hidden');
+    $('join-login-feedback').textContent = '';
+    $('join-login-btn').disabled = false;
+    $('join-login-btn').textContent = 'Entrar';
+  });
   $('scroll-signup-btn').addEventListener('click', () => {
     $('signup-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
