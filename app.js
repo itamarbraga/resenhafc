@@ -324,23 +324,49 @@ function initPlayerPhotoUpload() {
   const canvas = $('pp-photo-canvas');
   const btn    = $('pp-photo-btn');
   if (!area || !input) return;
-  area.addEventListener('click', () => input.click());
-  input.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+
+  area.addEventListener('click', (e) => {
+    if (e.target === input) return;
+    input.click();
+  });
+
+  input.addEventListener('change', () => {
+    const file = input.files && input.files[0];
     if (!file) return;
-    const instr = area.querySelector('.photo-upload-instructions span');
-    if (instr) instr.textContent = 'Processando…';
-    const reader = new FileReader();
-    reader.onload = (ev) => processPhoto(ev.target.result, canvas, () => {
-      playerState.newPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      area.classList.add('has-photo');
-      $('pp-photo-preview-wrap').style.display = 'flex';
-      $('pp-photo-instructions').style.display = 'none';
-      if (btn) btn.disabled = false;
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      const size   = 120;
+      const ctx    = canvas.getContext('2d');
+      canvas.width = size;
+      canvas.height = size;
+      const minDim = Math.min(img.width, img.height);
+      const sx     = (img.width  - minDim) / 2;
+      const sy     = Math.max(0, (img.height - minDim) * 0.25);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      ctx.restore();
+
+      URL.revokeObjectURL(url);
       input.value = '';
-    });
-    reader.onerror = () => { input.value = ''; };
-    reader.readAsDataURL(file);
+
+      let dataUrl;
+      try { dataUrl = canvas.toDataURL('image/jpeg', 0.82); }
+      catch (e) { dataUrl = canvas.toDataURL('image/png'); }
+
+      playerState.newPhotoDataUrl = dataUrl;
+      area.classList.add('has-photo');
+      if (btn) btn.disabled = false;
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(url); input.value = ''; };
+    img.src = url;
   });
 }
 
@@ -639,62 +665,120 @@ const photoState = { dataUrl: null };
 const proofState = { dataUrl: null };
 
 function initPhotoUpload() {
-  // Profile photo (with face crop + filter)
+  // ── Profile photo ──────────────────────────────────────────────────────
   const area   = $('photo-upload-area');
   const input  = $('photo-input');
   const canvas = $('photo-canvas');
   const regBtn = $('register-submit-btn');
+
   if (area && input) {
-    area.addEventListener('click', () => input.click());
-    input.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+    // Use label-style click: stop propagation so input inside area
+    // doesn't trigger area click again on iOS
+    area.addEventListener('click', (e) => {
+      if (e.target === input) return; // already handled
+      input.click();
+    });
+
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
       if (!file) return;
 
-      // Show processing state
       const instructions = area.querySelector('.photo-upload-instructions span');
       if (instructions) instructions.textContent = 'Processando…';
 
-      const reader = new FileReader();
-      reader.onload = (ev) => processPhoto(ev.target.result, canvas, () => {
+      // Use createObjectURL — more reliable than FileReader on iOS Safari
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        const size = 120;
+        const ctx  = canvas.getContext('2d');
+        canvas.width  = size;
+        canvas.height = size;
+
+        const minDim   = Math.min(img.width, img.height);
+        const sx       = (img.width  - minDim) / 2;
+        const sy       = Math.max(0, (img.height - minDim) * 0.25);
+
+        // Draw circular crop — NO ctx.filter (unsupported in Safari iOS < 18)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        ctx.restore();
+
+        URL.revokeObjectURL(url);
+        input.value = '';
+
+        // Store as PNG first, fallback chain for iOS
+        let dataUrl;
+        try {
+          dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        } catch (e) {
+          dataUrl = canvas.toDataURL('image/png');
+        }
+        photoState.dataUrl = dataUrl;
+
+        // Show preview using CSS class only — never set inline style
         area.classList.add('has-photo');
-        $('photo-preview-wrap').style.display = 'flex';
-        $('photo-upload-area')?.querySelector('.photo-upload-instructions')?.style.setProperty('display', 'none');
         if (regBtn) regBtn.disabled = false;
-        // Reset input so same file can be re-selected if needed
-        input.value = '';
-      });
-      reader.onerror = () => {
-        if (instructions) instructions.textContent = 'Toque para escolher uma foto';
-        input.value = '';
+        if (instructions) instructions.textContent = 'Toque para trocar a foto';
       };
-      reader.readAsDataURL(file);
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        input.value = '';
+        if (instructions) instructions.textContent = 'Erro ao carregar foto. Tente outra.';
+      };
+
+      img.src = url;
     });
   }
 
-  // Payment proof (no crop, just compress)
+  // ── Payment proof ──────────────────────────────────────────────────────
   const proofArea  = $('proof-upload-area');
   const proofInput = $('proof-input');
+
   if (proofArea && proofInput) {
-    proofArea.addEventListener('click', () => proofInput.click());
-    proofInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+    proofArea.addEventListener('click', (e) => {
+      if (e.target === proofInput) return;
+      proofInput.click();
+    });
+
+    proofInput.addEventListener('change', () => {
+      const file = proofInput.files && proofInput.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        compressImage(ev.target.result, 800, 0.82, (dataUrl) => {
-          proofState.dataUrl = dataUrl;
-          const img = $('proof-preview-img');
-          img.src = dataUrl;
-          img.style.display = 'block';
-          $('proof-preview-wrap').style.display = 'flex';
-          $('proof-instructions').style.display = 'none';
-          proofArea.classList.add('has-photo');
-          proofInput.value = '';
-          updateJoinSubmitState();
-        });
+
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        // Compress via canvas — max 800px
+        const maxDim = 800;
+        const scale  = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w      = Math.round(img.width  * scale);
+        const h      = Math.round(img.height * scale);
+        const c      = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+
+        URL.revokeObjectURL(url);
+        proofInput.value = '';
+
+        let dataUrl;
+        try { dataUrl = c.toDataURL('image/jpeg', 0.82); }
+        catch (e) { dataUrl = c.toDataURL('image/png'); }
+
+        proofState.dataUrl = dataUrl;
+        const previewImg = $('proof-preview-img');
+        if (previewImg) { previewImg.src = dataUrl; previewImg.style.display = 'block'; }
+        proofArea.classList.add('has-photo');
+        updateJoinSubmitState();
       };
-      reader.onerror = () => { proofInput.value = ''; };
-      reader.readAsDataURL(file);
+
+      img.onerror = () => { URL.revokeObjectURL(url); proofInput.value = ''; };
+      img.src = url;
     });
   }
 
@@ -821,13 +905,9 @@ async function submitRegisterForm(event) {
     const area = $('photo-upload-area');
     if (area) {
       area.classList.remove('has-photo');
-      const instr = area.querySelector('.photo-upload-instructions');
-      if (instr) instr.style.display = '';
       const instrSpan = area.querySelector('.photo-upload-instructions span');
       if (instrSpan) instrSpan.textContent = 'Toque para escolher uma foto';
     }
-    const previewWrap = $('photo-preview-wrap');
-    if (previewWrap) previewWrap.style.display = 'none';
     const canvas = $('photo-canvas');
     if (canvas) canvas.getContext('2d').clearRect(0, 0, 120, 120);
     btn.disabled = true;
@@ -906,10 +986,6 @@ async function submitJoinForm(event) {
     $('proof-upload-area')?.classList.remove('has-photo');
     const img = $('proof-preview-img');
     if (img) { img.src = ''; img.style.display = 'none'; }
-    const proofInstr = $('proof-instructions');
-    if (proofInstr) proofInstr.style.display = '';
-    const proofPreview = $('proof-preview-wrap');
-    if (proofPreview) proofPreview.style.display = 'none';
     $('join-login-form')?.reset();
     $('join-step-login').classList.remove('hidden');
     $('join-step-proof').classList.add('hidden');

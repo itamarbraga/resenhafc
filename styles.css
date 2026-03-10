@@ -947,18 +947,14 @@ input:focus {
 }
 
 @media (max-width: 1080px) {
-  .header-inner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header-actions {
-    justify-content: flex-start;
-  }
-
   .hero-grid {
     grid-template-columns: 1fr;
   }
+
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
   .teams-grid {
     grid-template-columns: 1fr;
@@ -1066,12 +1062,16 @@ input:focus {
   }
 
   .header-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .header-actions .btn {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.82rem;
+    padding: 10px 12px;
+    min-height: 42px;
   }
 
   .hero-actions {
@@ -1896,5 +1896,54 @@ body,
     flex-direction: row;
     flex-wrap: wrap;
     gap: 8px 14px;
+  }
+}
+
+/* ── Proof upload preview — CSS-controlled, no inline styles needed ───── */
+#proof-preview-wrap {
+  display: none;
+}
+.photo-upload-area.has-photo #proof-preview-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#proof-instructions {
+  display: flex;
+}
+.photo-upload-area.has-photo #proof-instructions {
+  display: none;
+}
+
+/* ── pp-photo (player profile photo) — same pattern ─────────────────── */
+#pp-photo-preview-wrap {
+  display: none;
+}
+.photo-upload-area.has-photo #pp-photo-preview-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#pp-photo-instructions {
+  display: flex;
+}
+.photo-upload-area.has-photo #pp-photo-instructions {
+  display: none;
+}
+
+/* ── Club logo size on phones ─────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .club-logo {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .site-title {
+    font-size: 1.3rem !important;
+  }
+  .eyebrow {
+    font-size: 0.7rem;
+  }
+  .site-description {
+    font-size: 0.88rem;
   }
 }
