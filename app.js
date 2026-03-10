@@ -377,88 +377,79 @@ function renderBrazilMap(list, svgId, legendId) {
   const counts = buildStateCounts(list);
   const ns     = 'http://www.w3.org/2000/svg';
 
-  svg.innerHTML   = '';
+  svg.innerHTML    = '';
   legend.innerHTML = '';
 
-  // Subtle map background
+  // SVG background — slightly lighter than page bg so map area is always visible
   const bg = document.createElementNS(ns, 'rect');
   bg.setAttribute('width', '520');
   bg.setAttribute('height', '560');
-  bg.setAttribute('rx', '12');
-  bg.setAttribute('fill', 'rgba(255,255,255,0.02)');
+  bg.setAttribute('rx', '14');
+  bg.setAttribute('fill', '#0f1f17');
   svg.appendChild(bg);
 
-  // Draw every state — always visible outline, fill scales with count
+  // Draw every state
   Object.entries(BRAZIL_PATHS).forEach(([code, d]) => {
     const count = counts[code] || 0;
     const h     = STATE_HUES[code] ?? 200;
 
-    // Fill: neutral grey outline always visible; colour when populated
+    // Empty: clearly visible muted fill on the dark bg
+    // Active: bright unique hue
     const fill   = count
-      ? `hsla(${h},${Math.min(85,55+count*7)}%,${Math.min(70,48+count*4)}%,0.90)`
-      : 'rgba(255,255,255,0.06)';
+      ? `hsla(${h},${Math.min(85,55+count*7)}%,${Math.min(68,46+count*5)}%,1)`
+      : '#1e3829';
     const stroke = count
-      ? `hsla(${h},60%,70%,0.6)`
-      : 'rgba(255,255,255,0.20)';
+      ? `hsla(${h},70%,80%,0.7)`
+      : '#2d4f3c';
 
     const path = document.createElementNS(ns, 'path');
     path.setAttribute('d', d);
     path.setAttribute('fill', fill);
     path.setAttribute('stroke', stroke);
-    path.setAttribute('stroke-width', '1.2');
+    path.setAttribute('stroke-width', '1.5');
     path.setAttribute('stroke-linejoin', 'round');
-    if (count) {
-      path.setAttribute('class', 'map-state map-state--active');
-      path.setAttribute('data-count', count);
-    } else {
-      path.setAttribute('class', 'map-state');
-    }
+    path.setAttribute('class', count ? 'map-state map-state--active' : 'map-state');
+    if (count) path.setAttribute('data-count', count);
     svg.appendChild(path);
 
-    // Label: code inside state
+    // State code label
     const [cx, cy] = BRAZIL_CENTROIDS[code];
-    const text = document.createElementNS(ns, 'text');
-    text.setAttribute('x', cx);
-    text.setAttribute('y', cy + 4);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('font-size', code === 'DF' ? '5' : '9');
-    text.setAttribute('font-weight', '700');
-    text.setAttribute('fill', count ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.40)');
-    text.setAttribute('pointer-events', 'none');
-    text.textContent = code;
-    svg.appendChild(text);
+    const label = document.createElementNS(ns, 'text');
+    label.setAttribute('x', cx);
+    label.setAttribute('y', cy + 4);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', code === 'DF' ? '5' : '9');
+    label.setAttribute('font-weight', '700');
+    label.setAttribute('fill', count ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)');
+    label.setAttribute('pointer-events', 'none');
+    label.textContent = code;
+    svg.appendChild(label);
   });
 
-  // Legend — only states with people
+  // Legend — only populated states
   const active = Object.entries(counts)
     .filter(([k]) => k !== 'INTL')
     .sort((a, b) => b[1] - a[1]);
   const intlCount = counts['INTL'] || 0;
 
   if (!active.length && !intlCount) {
-    legend.innerHTML = '<span class="map-legend-empty">Os estados vão acender conforme as pessoas se cadastrarem.</span>';
+    legend.innerHTML = '<span class="map-legend-empty">Os estados acendem conforme as pessoas se cadastram.</span>';
     return;
   }
 
   active.forEach(([code, n]) => {
-    const h    = STATE_HUES[code] ?? 200;
-    const chip = document.createElement('div');
-    chip.className = 'map-legend-item';
-    chip.innerHTML = `
-      <span class="map-legend-dot" style="background:hsla(${h},75%,60%,1)"></span>
-      <span class="map-legend-code">${code}</span>
-      <span class="map-legend-count">${n}</span>`;
-    legend.appendChild(chip);
+    const h   = STATE_HUES[code] ?? 200;
+    const div = document.createElement('div');
+    div.className = 'map-legend-item';
+    div.innerHTML = `<span class="map-legend-dot" style="background:hsla(${h},75%,60%,1)"></span><span class="map-legend-code">${code}</span><span class="map-legend-count">${n}</span>`;
+    legend.appendChild(div);
   });
 
   if (intlCount) {
-    const chip = document.createElement('div');
-    chip.className = 'map-legend-item';
-    chip.innerHTML = `
-      <span class="map-legend-dot" style="background:#a78bfa"></span>
-      <span class="map-legend-code">🌍 Intl</span>
-      <span class="map-legend-count">${intlCount}</span>`;
-    legend.appendChild(chip);
+    const div = document.createElement('div');
+    div.className = 'map-legend-item';
+    div.innerHTML = `<span class="map-legend-dot" style="background:#a78bfa"></span><span class="map-legend-code">🌍 Intl</span><span class="map-legend-count">${intlCount}</span>`;
+    legend.appendChild(div);
   }
 }
 
@@ -780,29 +771,52 @@ async function submitRegisterForm(event) {
   event.preventDefault();
   const feedback = $('register-feedback');
   const btn = $('register-submit-btn');
-  feedback.textContent = '';
 
+  function showError(msg, focusId) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = '⚠️ ' + msg;
+    feedback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (focusId) {
+      const el = $(focusId);
+      if (el) { el.focus(); el.style.borderColor = 'var(--yellow)'; }
+    }
+    btn.disabled = false;
+    btn.textContent = 'Cadastrar perfil';
+  }
+
+  // Reset field highlight
+  ['reg-username','reg-password','reg-first-name','reg-last-name','reg-state'].forEach((id) => {
+    const el = $(id);
+    if (el) el.style.borderColor = '';
+  });
+
+  feedback.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  const username  = $('reg-username').value.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
+  const password  = $('reg-password').value;
   const firstName = $('reg-first-name').value.trim();
   const lastName  = $('reg-last-name').value.trim();
   const phone     = $('reg-phone').value.trim();
   const state     = $('reg-state').value;
 
-  if (!firstName || !lastName) { feedback.textContent = 'Nome e sobrenome são obrigatórios.'; return; }
-  if (!state) { feedback.textContent = 'Selecione seu estado.'; return; }
-  if (!photoState.dataUrl) { feedback.textContent = 'Adicione sua foto de perfil.'; return; }
-
-  btn.disabled = true;
-  btn.textContent = 'Enviando…';
+  if (!username || username.length < 3) return showError('Escolha um nome de usuário com pelo menos 3 caracteres.', 'reg-username');
+  if (!password || password.length < 6) return showError('A senha deve ter pelo menos 6 caracteres.', 'reg-password');
+  if (!firstName || firstName.length < 2) return showError('Digite seu nome.', 'reg-first-name');
+  if (!lastName  || lastName.length  < 2) return showError('Digite seu sobrenome.', 'reg-last-name');
+  if (!state) return showError('Selecione seu estado ou "Internacional".', 'reg-state');
+  if (!photoState.dataUrl) return showError('Adicione sua foto de perfil — toque na área da foto.', 'photo-upload-area');
 
   try {
     await request('/api/register', {
       method: 'POST',
-      body: JSON.stringify({ firstName, lastName, phone, state, photoData: photoState.dataUrl }),
+      body: JSON.stringify({ username, password, firstName, lastName, phone, state, photoData: photoState.dataUrl }),
     });
     feedback.style.color = 'var(--green)';
     feedback.textContent = '✓ Cadastro enviado! Aguarde a aprovação do admin para entrar na lista.';
+    feedback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     $('register-form').reset();
-    // Fully reset photo state
     photoState.dataUrl = null;
     const area = $('photo-upload-area');
     if (area) {
@@ -819,10 +833,7 @@ async function submitRegisterForm(event) {
     btn.disabled = true;
     btn.textContent = 'Cadastrar perfil';
   } catch (err) {
-    feedback.style.color = 'var(--yellow)';
-    feedback.textContent = err.message;
-    btn.disabled = false;
-    btn.textContent = 'Cadastrar perfil';
+    showError(err.message, null);
   }
 }
 

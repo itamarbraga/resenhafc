@@ -140,28 +140,28 @@
           <!-- ── Tab 1: Register profile ──────────────────────────────────── -->
           <div id="signup-panel-register" class="signup-card">
             <p class="signup-tab-desc">Cadastre-se uma vez. Seu perfil fica salvo para todos os jogos futuros.</p>
-            <form id="register-form" class="join-form">
+            <form id="register-form" novalidate class="join-form">
 
               <div class="field-row">
                 <label class="field">
                   <span>Nome de usuário <span class="required-badge">obrigatório</span></span>
-                  <input id="reg-username" type="text" placeholder="ex: joaosilva" maxlength="30" autocomplete="username" required />
+                  <input id="reg-username" type="text" placeholder="ex: joaosilva" maxlength="30" autocomplete="username" />
                   <small class="field-hint">Letras, números, _ ou . (mín. 3)</small>
                 </label>
                 <label class="field">
                   <span>Senha <span class="required-badge">obrigatório</span></span>
-                  <input id="reg-password" type="password" placeholder="Mínimo 6 caracteres" maxlength="72" autocomplete="new-password" required />
+                  <input id="reg-password" type="password" placeholder="Mínimo 6 caracteres" maxlength="72" autocomplete="new-password" />
                 </label>
               </div>
 
               <div class="field-row">
                 <label class="field">
                   <span>Nome</span>
-                  <input id="reg-first-name" type="text" placeholder="Primeiro nome" maxlength="40" required />
+                  <input id="reg-first-name" type="text" placeholder="Primeiro nome" maxlength="40" />
                 </label>
                 <label class="field">
                   <span>Sobrenome</span>
-                  <input id="reg-last-name" type="text" placeholder="Sobrenome" maxlength="40" required />
+                  <input id="reg-last-name" type="text" placeholder="Sobrenome" maxlength="40" />
                 </label>
               </div>
 
@@ -172,7 +172,7 @@
                 </label>
                 <label class="field">
                   <span>Estado <span class="required-badge">obrigatório</span></span>
-                  <select id="reg-state" required>
+                  <select id="reg-state">
                     <option value="">Selecione...</option>
                     <option value="INTL">🌍 Internacional</option>
                     <option disabled>── Brasil ──</option>
@@ -215,7 +215,7 @@
             <!-- Step 1: Login -->
             <div id="join-step-login">
               <p class="signup-tab-desc">Entre com seu usuário e senha para adicionar seu nome à lista.</p>
-              <form id="join-login-form" class="join-form">
+              <form id="join-login-form" novalidate class="join-form">
                 <label class="field">
                   <span>Nome de usuário</span>
                   <input id="join-username" type="text" placeholder="Seu usuário" maxlength="30" autocomplete="username" required />
@@ -241,7 +241,7 @@
                 </div>
               </div>
 
-              <form id="join-form" class="join-form" style="margin-top:16px">
+              <form id="join-form" novalidate class="join-form" style="margin-top:16px">
                 <label class="field">
                   <span>Comprovante de pagamento <span class="required-badge">obrigatório</span></span>
                   <div class="photo-upload-area" id="proof-upload-area">
@@ -286,7 +286,9 @@
               <span class="brazil-map-title">🗺️ Representação na lista</span>
             </div>
             <div class="brazil-map-wrap">
-              <svg id="game-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+              <div class="brazil-map-svg-outer">
+                <svg id="game-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+              </div>
               <div id="game-map-legend" class="map-legend"></div>
             </div>
           </div>
@@ -314,7 +316,9 @@
             </div>
           </div>
           <div class="brazil-map-wrap">
-            <svg id="members-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="brazil-map-svg-outer">
+              <svg id="members-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
             <div id="members-map-legend" class="map-legend"></div>
           </div>
         </div>
