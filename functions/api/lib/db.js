@@ -90,6 +90,31 @@ export async function initializeDb(env) {
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS game_days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_date TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS team_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_day_id INTEGER NOT NULL,
+      team_key TEXT NOT NULL,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS player_minutes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_day_id INTEGER NOT NULL,
+      player_name TEXT NOT NULL,
+      minutes REAL NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS player_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_day_id INTEGER NOT NULL,
+      player_name TEXT NOT NULL,
+      goals INTEGER NOT NULL DEFAULT 0
+    )`,
   ];
 
   for (const sql of statements) {
@@ -315,11 +340,12 @@ export async function deleteSession(env, token) {
 }
 
 export async function buildPublicState(env) {
-  const [config, members, sponsors, teams] = await Promise.all([
+  const [config, members, sponsors, teams, stats] = await Promise.all([
     getConfig(env),
     listMembers(env, 'confirmed'),
     listSponsors(env),
     listTeams(env),
+    buildStats(env),
   ]);
 
   return {
@@ -327,6 +353,112 @@ export async function buildPublicState(env) {
     members,
     sponsors,
     teams,
+    stats,
     storage: 'Cloudflare Pages + D1 ativo',
   };
+}
+
+// ─── Game stats ─────────────────────────────────────────────────────────────
+
+export async function saveGameDay(env, gameDate, teamResults, playerGoals, currentTeams) {
+  // Insert game_day
+  const dayResult = await env.DB
+    .prepare('INSERT INTO game_days (game_date) VALUES (?1)')
+    .bind(gameDate)
+    .run();
+  const gameDayId = dayResult.meta.last_row_id;
+
+  // Save team results + calculate player minutes
+  for (const [teamKey, { wins, losses }] of Object.entries(teamResults)) {
+    await env.DB
+      .prepare('INSERT INTO team_results (game_day_id, team_key, wins, losses) VALUES (?1,?2,?3,?4)')
+      .bind(gameDayId, teamKey, wins, losses)
+      .run();
+
+    const minutes = wins * 7 + losses * 3.5;
+    const players = currentTeams[teamKey] || [];
+    for (const playerName of players) {
+      await env.DB
+        .prepare('INSERT INTO player_minutes (game_day_id, player_name, minutes) VALUES (?1,?2,?3)')
+        .bind(gameDayId, playerName, minutes)
+        .run();
+    }
+  }
+
+  // Save player goals
+  for (const { name, goals } of playerGoals) {
+    if (goals > 0) {
+      await env.DB
+        .prepare('INSERT INTO player_goals (game_day_id, player_name, goals) VALUES (?1,?2,?3)')
+        .bind(gameDayId, name, goals)
+        .run();
+    }
+  }
+
+  return gameDayId;
+}
+
+export async function listGameDays(env) {
+  const rows = await env.DB
+    .prepare('SELECT id, game_date, notes, created_at FROM game_days ORDER BY game_date DESC')
+    .all();
+  return rows.results || [];
+}
+
+export async function deleteGameDay(env, id) {
+  await env.DB.prepare('DELETE FROM player_goals WHERE game_day_id = ?1').bind(id).run();
+  await env.DB.prepare('DELETE FROM player_minutes WHERE game_day_id = ?1').bind(id).run();
+  await env.DB.prepare('DELETE FROM team_results WHERE game_day_id = ?1').bind(id).run();
+  await env.DB.prepare('DELETE FROM game_days WHERE id = ?1').bind(id).run();
+}
+
+export async function buildStats(env) {
+  // Count game days
+  const dayCountRow = await env.DB
+    .prepare('SELECT COUNT(*) AS count FROM game_days')
+    .first();
+  const totalDays = Number(dayCountRow?.count || 0);
+  const totalPossibleMinutes = totalDays * 120;
+
+  // GOAT ranking: sum minutes per player
+  const minuteRows = await env.DB
+    .prepare(`SELECT player_name, SUM(minutes) AS total_minutes
+              FROM player_minutes GROUP BY lower(player_name)
+              ORDER BY total_minutes DESC`)
+    .all();
+
+  // Golden Boot: sum goals per player
+  const goalRows = await env.DB
+    .prepare(`SELECT player_name, SUM(goals) AS total_goals
+              FROM player_goals GROUP BY lower(player_name)
+              ORDER BY total_goals DESC`)
+    .all();
+
+  // Get member photos for lookup
+  const memberRows = await env.DB
+    .prepare('SELECT name, photo_data FROM members WHERE status = ?1')
+    .bind('confirmed')
+    .all();
+  const photoMap = {};
+  for (const m of (memberRows.results || [])) {
+    photoMap[m.name.toLowerCase()] = m.photo_data || null;
+  }
+
+  const goatRanking = (minuteRows.results || []).map((row) => ({
+    name: row.player_name,
+    totalMinutes: Number(row.total_minutes),
+    totalPossible: totalPossibleMinutes,
+    ratio: totalPossibleMinutes > 0
+      ? Math.round((Number(row.total_minutes) / totalPossibleMinutes) * 1000) / 10
+      : 0,
+    photo: photoMap[row.player_name.toLowerCase()] || null,
+  }));
+
+  const goldenBoot = (goalRows.results || []).map((row) => ({
+    name: row.player_name,
+    totalGoals: Number(row.total_goals),
+    photo: photoMap[row.player_name.toLowerCase()] || null,
+  }));
+
+  return { goatRanking, goldenBoot, totalDays };
 }

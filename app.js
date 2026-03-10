@@ -55,7 +55,7 @@ function renderPublic() {
   const data = state.publicData;
   if (!data) return;
 
-  const { config, members, sponsors, teams, storage } = data;
+  const { config, members, sponsors, teams, storage, stats } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
   $('hero-arrival').textContent = `Chegada ${config.arrivalTime}`;
   $('hero-window').textContent = `${config.startTime} — ${config.endTime}`;
@@ -80,6 +80,7 @@ function renderPublic() {
   renderConfirmed(members, config.maxSlots);
   renderSponsors(sponsors);
   renderTeams(teams);
+  renderRankings(stats);
   startCountdown(config.gameDate, config.startTime);
 }
 
@@ -398,6 +399,7 @@ function renderAdmin() {
   renderPendingAdmin(data.pendingMembers || []);
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
+  renderAdminGameResults(data.members || [], data.gameDays || []);
 }
 
 function renderPendingAdmin(items) {
@@ -547,6 +549,173 @@ async function logoutAdmin() {
   closeAdmin();
 }
 
+// ─── Rankings ────────────────────────────────────────────────────────────────
+
+function renderRankings(stats) {
+  if (!stats) return;
+  renderGoat(stats.goatRanking || [], stats.totalDays || 0);
+  renderGoldenBoot(stats.goldenBoot || []);
+}
+
+function avatarHtml(player, size = 40) {
+  if (player.photo) {
+    return `<img class="rank-avatar" src="${player.photo}" alt="${escapeHtml(player.name)}" style="width:${size}px;height:${size}px" />`;
+  }
+  return `<div class="rank-avatar rank-avatar-fallback" style="width:${size}px;height:${size}px">${escapeHtml(player.name.charAt(0).toUpperCase())}</div>`;
+}
+
+function renderGoat(ranking, totalDays) {
+  const container = $('goat-list');
+  if (!ranking.length) {
+    container.innerHTML = `<div class="empty-state">Nenhum dado ainda. Registre os resultados após o jogo!</div>`;
+    return;
+  }
+  const maxMinutes = ranking[0]?.totalMinutes || 1;
+  container.innerHTML = ranking.map((p, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+    const barPct = Math.min(100, (p.totalMinutes / Math.max(1, totalDays * 120)) * 100);
+    return `
+      <div class="rank-item">
+        <div class="rank-medal">${medal}</div>
+        ${avatarHtml(p)}
+        <div class="rank-info">
+          <div class="rank-name">${escapeHtml(p.name)}</div>
+          <div class="rank-bar-wrap">
+            <div class="rank-bar" style="width:${barPct}%"></div>
+          </div>
+          <div class="rank-meta">${p.totalMinutes.toFixed(1)} min · ${p.ratio}% do tempo total</div>
+        </div>
+        <div class="rank-value">${p.ratio}%</div>
+      </div>`;
+  }).join('');
+}
+
+function renderGoldenBoot(ranking) {
+  const container = $('boot-list');
+  if (!ranking.length) {
+    container.innerHTML = `<div class="empty-state">Nenhum gol registrado ainda.</div>`;
+    return;
+  }
+  container.innerHTML = ranking.map((p, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+    return `
+      <div class="rank-item">
+        <div class="rank-medal">${medal}</div>
+        ${avatarHtml(p)}
+        <div class="rank-info">
+          <div class="rank-name">${escapeHtml(p.name)}</div>
+          <div class="rank-meta">${p.totalGoals} gol${p.totalGoals !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="rank-value rank-value--goals">⚽ ${p.totalGoals}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── Admin: game results ─────────────────────────────────────────────────────
+
+function renderAdminGameResults(members, gameDays) {
+  // Populate goals grid with confirmed members
+  const goalsGrid = $('gr-goals-list');
+  if (!goalsGrid) return;
+
+  if (!members || !members.length) {
+    goalsGrid.innerHTML = '<div class="empty-state">Adicione jogadores confirmados primeiro.</div>';
+  } else {
+    goalsGrid.innerHTML = members.map((m) => `
+      <div class="gr-goal-row">
+        ${m.photoData ? `<img class="gr-goal-avatar" src="${m.photoData}" alt="${escapeHtml(m.name)}" />` : `<div class="gr-goal-avatar gr-goal-avatar-fallback">${m.name.charAt(0).toUpperCase()}</div>`}
+        <span class="gr-goal-name">${escapeHtml(m.name)}</span>
+        <div class="gr-goal-counter">
+          <button type="button" class="gr-count-btn" data-action="dec" data-name="${escapeHtml(m.name)}">−</button>
+          <span class="gr-count-val" id="goals-${escapeHtml(m.name).replace(/\s/g, '_')}">0</span>
+          <button type="button" class="gr-count-btn" data-action="inc" data-name="${escapeHtml(m.name)}">+</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Set today's date as default
+  if ($('gr-date') && !$('gr-date').value) {
+    $('gr-date').value = new Date().toISOString().slice(0, 10);
+  }
+
+  // Render game day history
+  renderGameDayHistory(gameDays || []);
+}
+
+function renderGameDayHistory(gameDays) {
+  const container = $('gr-history');
+  if (!container) return;
+  if (!gameDays.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <h4 class="top-gap">Histórico de jogos</h4>
+    ${gameDays.map((d) => `
+      <div class="admin-item">
+        <div><div class="name">${d.game_date}</div></div>
+        <div class="row-actions">
+          <button class="btn btn-danger btn-sm" data-delete-gameday="${d.id}">Remover</button>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function saveGameResults() {
+  const feedback = $('gr-feedback');
+  feedback.textContent = '';
+  feedback.style.color = 'var(--yellow)';
+
+  const gameDate = $('gr-date').value;
+  if (!gameDate) { feedback.textContent = 'Selecione a data do jogo.'; return; }
+
+  const teamResults = {
+    A: { wins: Number($('gr-wins-A').value || 0), losses: Number($('gr-losses-A').value || 0) },
+    B: { wins: Number($('gr-wins-B').value || 0), losses: Number($('gr-losses-B').value || 0) },
+    C: { wins: Number($('gr-wins-C').value || 0), losses: Number($('gr-losses-C').value || 0) },
+  };
+
+  // Collect goals
+  const playerGoals = [];
+  document.querySelectorAll('#gr-goals-list .gr-goal-row').forEach((row) => {
+    const name = row.querySelector('.gr-goal-name').textContent;
+    const valEl = row.querySelector('.gr-count-val');
+    const goals = Number(valEl?.textContent || 0);
+    playerGoals.push({ name, goals });
+  });
+
+  try {
+    const btn = $('save-game-results-btn');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+    const data = await request('/api/admin/game-results', {
+      method: 'POST',
+      body: JSON.stringify({ gameDate, teamResults, playerGoals }),
+    });
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Resultado salvo com sucesso!';
+    // Reset counters
+    document.querySelectorAll('.gr-count-val').forEach((el) => { el.textContent = '0'; });
+    ['A', 'B', 'C'].forEach((t) => {
+      $(`gr-wins-${t}`).value = '0';
+      $(`gr-losses-${t}`).value = '0';
+    });
+    state.publicData = data.state;
+    renderPublic();
+    // Refresh history
+    const histData = await request('/api/admin/game-results');
+    renderGameDayHistory(histData.gameDays || []);
+  } catch (err) {
+    feedback.textContent = err.message;
+  } finally {
+    const btn = $('save-game-results-btn');
+    btn.disabled = false;
+    btn.textContent = 'Salvar resultado';
+  }
+}
+
 function attachEvents() {
   $('join-form').addEventListener('submit', submitJoinForm);
   $('scroll-signup-btn').addEventListener('click', () => {
@@ -560,10 +729,54 @@ function attachEvents() {
   $('pending-list').addEventListener('click', handleAdminListClick);
   $('admin-members-list').addEventListener('click', handleAdminListClick);
   $('generate-teams-btn').addEventListener('click', generateTeams);
+  $('save-game-results-btn').addEventListener('click', saveGameResults);
   $('admin-refresh-btn').addEventListener('click', async () => {
     await Promise.all([loadPublicState(), loadAdminState()]);
   });
   $('admin-logout-btn').addEventListener('click', logoutAdmin);
+
+  // Ranking tabs
+  document.querySelectorAll('.ranking-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.ranking-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      $('ranking-goat').classList.toggle('hidden', target !== 'goat');
+      $('ranking-boot').classList.toggle('hidden', target !== 'boot');
+    });
+  });
+
+  // Goal counter buttons (delegated)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.gr-count-btn');
+    if (!btn) return;
+    const name = btn.dataset.name;
+    const id = `goals-${name.replace(/\s/g, '_')}`;
+    const el = document.getElementById(id);
+    if (!el) return;
+    let val = Number(el.textContent);
+    if (btn.dataset.action === 'inc') val++;
+    if (btn.dataset.action === 'dec' && val > 0) val--;
+    el.textContent = String(val);
+  });
+
+  // Delete game day (delegated)
+  $('gr-history')?.addEventListener('click', async (e) => {
+    const id = e.target.getAttribute('data-delete-gameday');
+    if (!id) return;
+    if (!confirm('Remover este dia de jogo e todos os dados relacionados?')) return;
+    try {
+      await request('/api/admin/game-results', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: Number(id) }),
+      });
+      const histData = await request('/api/admin/game-results');
+      renderGameDayHistory(histData.gameDays || []);
+      await loadPublicState();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
 }
 
 async function bootstrap() {

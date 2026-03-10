@@ -184,11 +184,33 @@
         </div>
       </section>
 
-      <section class="section-block">
+      <!-- ── Rankings ─────────────────────────────────────────────────────── -->
+      <section class="section-block" id="rankings-section">
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Parceiros</p>
+              <p class="section-kicker">Estatísticas</p>
+              <h2>Rankings</h2>
+            </div>
+            <div class="ranking-tabs">
+              <button class="ranking-tab active" data-tab="goat">🏆 GOAT</button>
+              <button class="ranking-tab" data-tab="boot">⚽ Chuteira de Ouro</button>
+            </div>
+          </div>
+
+          <div id="ranking-goat" class="ranking-panel">
+            <div class="ranking-legend">Ratio de minutos jogados por dia (meta: 120 min)</div>
+            <div id="goat-list" class="ranking-list"></div>
+          </div>
+
+          <div id="ranking-boot" class="ranking-panel hidden">
+            <div class="ranking-legend">Total de gols marcados em todas as partidas</div>
+            <div id="boot-list" class="ranking-list"></div>
+          </div>
+        </div>
+      </section>
+
+
               <h2>Patrocinadores</h2>
             </div>
           </div>
@@ -351,6 +373,68 @@
           </div>
 
           <p id="teams-feedback" class="form-feedback"></p>
+        </section>
+
+        <!-- ── Resultado do dia ──────────────────────────────────────────── -->
+        <section class="admin-section">
+          <h3>⚽ Registrar resultado do jogo</h3>
+          <p class="admin-hint">Registre os resultados após cada sessão. Os minutos são calculados automaticamente com base nos times gerados.</p>
+
+          <div class="admin-form-grid">
+            <label class="field">
+              <span>Data do jogo</span>
+              <input id="gr-date" type="date" />
+            </label>
+          </div>
+
+          <div class="gr-teams-grid">
+            <div class="gr-team-card" data-team="A">
+              <div class="gr-team-label team-a-label">Time A</div>
+              <label class="field">
+                <span>Vitórias</span>
+                <input type="number" min="0" max="20" value="0" id="gr-wins-A" />
+              </label>
+              <label class="field">
+                <span>Derrotas</span>
+                <input type="number" min="0" max="20" value="0" id="gr-losses-A" />
+              </label>
+            </div>
+            <div class="gr-team-card" data-team="B">
+              <div class="gr-team-label team-b-label">Time B</div>
+              <label class="field">
+                <span>Vitórias</span>
+                <input type="number" min="0" max="20" value="0" id="gr-wins-B" />
+              </label>
+              <label class="field">
+                <span>Derrotas</span>
+                <input type="number" min="0" max="20" value="0" id="gr-losses-B" />
+              </label>
+            </div>
+            <div class="gr-team-card" data-team="C">
+              <div class="gr-team-label team-c-label">Time C</div>
+              <label class="field">
+                <span>Vitórias</span>
+                <input type="number" min="0" max="20" value="0" id="gr-wins-C" />
+              </label>
+              <label class="field">
+                <span>Derrotas</span>
+                <input type="number" min="0" max="20" value="0" id="gr-losses-C" />
+              </label>
+            </div>
+          </div>
+
+          <h4 class="top-gap">Gols por jogador</h4>
+          <p class="admin-hint">Deixe em 0 para jogadores sem gol.</p>
+          <div id="gr-goals-list" class="gr-goals-grid"></div>
+
+          <div class="row-actions top-gap">
+            <button id="save-game-results-btn" type="button" class="btn btn-primary">
+              Salvar resultado
+            </button>
+          </div>
+          <p id="gr-feedback" class="form-feedback"></p>
+
+          <div id="gr-history" class="gr-history"></div>
         </section>
       </div>
     </div>
