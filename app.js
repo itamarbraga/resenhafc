@@ -58,7 +58,7 @@ function renderPublic() {
   const { config, members, sponsors, teams, benchTeam, storage, stats, approvedPlayers } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
   $('hero-arrival').textContent = `Chegada ${config.arrivalTime}`;
-  $('hero-window').textContent = `${config.startTime} — ${config.endTime}`;
+  $('hero-window').textContent = `Início: ${config.startTime} — ${config.endTime}`;
   $('game-date-inline').textContent = formatPrettyDate(config.gameDate);
   $('arrival-inline').textContent = config.arrivalTime;
   $('window-inline').textContent = `${config.startTime} — ${config.endTime}`;
