@@ -41,6 +41,9 @@
           <button id="scroll-signup-btn" class="btn btn-primary" type="button">
             Entrar na lista
           </button>
+          <button id="player-login-btn" class="btn btn-secondary" type="button">
+            🔐 Login
+          </button>
           <a id="whatsapp-btn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
             Entrar no grupo WhatsApp
           </a>
@@ -594,6 +597,127 @@
       </div>
     </a>
   </template>
+
+  <!-- ── Player profile modal ─────────────────────────────────────────────── -->
+  <div id="player-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-player-modal></div>
+    <div class="modal-panel">
+      <button class="modal-close" type="button" data-close-player-modal aria-label="Fechar">×</button>
+
+      <!-- Login view -->
+      <div id="player-login-view">
+        <div class="modal-header">
+          <h2>Login do membro</h2>
+          <p class="modal-subtitle">Entre com seu usuário e senha para acessar seu perfil.</p>
+        </div>
+        <form id="player-login-form" class="admin-form-stack">
+          <label class="field">
+            <span>Nome de usuário</span>
+            <input id="pl-username" type="text" placeholder="Seu usuário" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Senha</span>
+            <input id="pl-password" type="password" placeholder="Sua senha" autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn btn-primary btn-large" id="pl-login-btn">Entrar</button>
+        </form>
+        <p id="pl-login-feedback" class="form-feedback"></p>
+      </div>
+
+      <!-- Profile view (shown after login) -->
+      <div id="player-profile-view" class="hidden">
+        <div class="player-profile-header">
+          <div id="pp-avatar-wrap" class="pp-avatar-wrap"></div>
+          <div class="player-profile-info">
+            <div id="pp-fullname" class="pp-fullname"></div>
+            <div id="pp-state-badge" class="pp-state-badge"></div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="pl-logout-btn">Sair</button>
+        </div>
+
+        <div class="player-profile-sections">
+
+          <!-- Edit personal info -->
+          <div class="admin-section">
+            <h3>✏️ Editar dados</h3>
+            <form id="pp-info-form" class="admin-form-stack">
+              <div class="field-row">
+                <label class="field">
+                  <span>Nome</span>
+                  <input id="pp-first-name" type="text" maxlength="40" />
+                </label>
+                <label class="field">
+                  <span>Sobrenome</span>
+                  <input id="pp-last-name" type="text" maxlength="40" />
+                </label>
+              </div>
+              <div class="field-row">
+                <label class="field">
+                  <span>Telefone / WhatsApp</span>
+                  <input id="pp-phone" type="tel" maxlength="30" />
+                </label>
+                <label class="field">
+                  <span>Estado</span>
+                  <select id="pp-state">
+                    <option value="">Selecione...</option>
+                    <option value="INTL">🌍 Internacional</option>
+                    <option disabled>── Brasil ──</option>
+                    <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                    <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                    <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                    <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                    <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                    <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                    <option>SP</option><option>SE</option><option>TO</option>
+                  </select>
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary" id="pp-info-btn">Salvar dados</button>
+            </form>
+            <p id="pp-info-feedback" class="form-feedback"></p>
+          </div>
+
+          <!-- Change photo -->
+          <div class="admin-section">
+            <h3>📷 Trocar foto de perfil</h3>
+            <div class="photo-upload-area" id="pp-photo-area">
+              <div class="photo-preview-wrap" id="pp-photo-preview-wrap">
+                <canvas id="pp-photo-canvas" width="120" height="120"></canvas>
+              </div>
+              <div class="photo-upload-instructions" id="pp-photo-instructions">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Toque para escolher uma foto</span>
+                <small>Sua face será cortada automaticamente</small>
+              </div>
+              <input id="pp-photo-input" type="file" accept="image/*" style="display:none" />
+            </div>
+            <button type="button" class="btn btn-primary" id="pp-photo-btn" disabled style="margin-top:12px">
+              Salvar nova foto
+            </button>
+            <p id="pp-photo-feedback" class="form-feedback"></p>
+          </div>
+
+          <!-- Change password -->
+          <div class="admin-section">
+            <h3>🔑 Trocar senha</h3>
+            <form id="pp-pw-form" class="admin-form-stack">
+              <label class="field">
+                <span>Senha atual</span>
+                <input id="pp-current-pw" type="password" placeholder="Senha atual" autocomplete="current-password" />
+              </label>
+              <label class="field">
+                <span>Nova senha</span>
+                <input id="pp-new-pw" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+              </label>
+              <button type="submit" class="btn btn-primary" id="pp-pw-btn">Alterar senha</button>
+            </form>
+            <p id="pp-pw-feedback" class="form-feedback"></p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="/app.js"></script>
 </body>

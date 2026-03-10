@@ -370,10 +370,44 @@ export async function createSession(env, token, username, expiresAt) {
 
 export async function deleteSession(env, token) {
   if (!token) return;
+  await env.DB.prepare('DELETE FROM sessions WHERE token = ?1').bind(token).run();
+}
 
-  await env.DB.prepare('DELETE FROM sessions WHERE token = ?1')
-    .bind(token)
-    .run();
+export async function createPlayerSession(env, token, playerId, expiresAt) {
+  await env.DB.prepare('INSERT INTO sessions (token, username, expires_at) VALUES (?1, ?2, ?3)')
+    .bind(token, `player:${playerId}`, expiresAt).run();
+}
+
+export async function getPlayerSession(env, token) {
+  if (!token) return null;
+  const row = await env.DB
+    .prepare('SELECT token, username, expires_at FROM sessions WHERE token = ?1 LIMIT 1')
+    .bind(token).first();
+  if (!row) return null;
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    await env.DB.prepare('DELETE FROM sessions WHERE token = ?1').bind(token).run();
+    return null;
+  }
+  // username stored as "player:ID"
+  if (!String(row.username).startsWith('player:')) return null;
+  const playerId = Number(String(row.username).replace('player:', ''));
+  return { token: row.token, playerId };
+}
+
+export async function updatePlayer(env, id, { firstName, lastName, phone, state, photoData, passwordHash, passwordSalt }) {
+  const fields = [];
+  const binds  = [];
+  let i = 1;
+  if (firstName    !== undefined) { fields.push(`first_name = ?${i++}`);    binds.push(firstName); }
+  if (lastName     !== undefined) { fields.push(`last_name = ?${i++}`);     binds.push(lastName); }
+  if (phone        !== undefined) { fields.push(`phone = ?${i++}`);         binds.push(phone); }
+  if (state        !== undefined) { fields.push(`state = ?${i++}`);         binds.push(state); }
+  if (photoData    !== undefined) { fields.push(`photo_data = ?${i++}`);    binds.push(photoData); }
+  if (passwordHash !== undefined) { fields.push(`password_hash = ?${i++}`); binds.push(passwordHash); }
+  if (passwordSalt !== undefined) { fields.push(`password_salt = ?${i++}`); binds.push(passwordSalt); }
+  if (!fields.length) return;
+  binds.push(id);
+  await env.DB.prepare(`UPDATE players SET ${fields.join(', ')} WHERE id = ?${i}`).bind(...binds).run();
 }
 
 // ─── Player profiles ─────────────────────────────────────────────────────────
@@ -443,7 +477,7 @@ export async function deletePlayer(env, id) {
 
 export async function getPlayer(env, id) {
   const row = await env.DB
-    .prepare('SELECT id, first_name, last_name, phone, state, photo_data, status FROM players WHERE id = ?1')
+    .prepare('SELECT id, first_name, last_name, phone, state, photo_data, status, password_hash, password_salt FROM players WHERE id = ?1')
     .bind(id).first();
   if (!row) return null;
   return {
@@ -455,6 +489,8 @@ export async function getPlayer(env, id) {
     state: row.state,
     photoData: row.photo_data || null,
     status: row.status,
+    passwordHash: row.password_hash,
+    passwordSalt: row.password_salt,
   };
 }
 

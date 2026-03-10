@@ -59,6 +59,14 @@ export function sessionCookie(token, maxAge = 60 * 60 * 24 * 30) {
   return `bfc_session=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=${maxAge}`;
 }
 
+export function playerSessionCookie(token, maxAge = 60 * 60 * 24 * 30) {
+  return `bfc_player=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=${maxAge}`;
+}
+
+export function clearPlayerSessionCookie() {
+  return 'bfc_player=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0';
+}
+
 export function clearSessionCookie() {
   return 'bfc_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0';
 }

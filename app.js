@@ -91,8 +91,6 @@ async function loadPublicState(retries = 3) {
     }
   }
 }
-  renderPublic();
-}
 
 function renderPublic() {
   const data = state.publicData;
@@ -128,7 +126,225 @@ function renderPublic() {
   startCountdown(config.gameDate, config.startTime);
 }
 
-// ─── Brazil Map ─────────────────────────────────────────────────────────────
+// ─── Player profile modal ───────────────────────────────────────────────────
+
+const playerState = { data: null, newPhotoDataUrl: null };
+
+function openPlayerModal() {
+  $('player-modal').classList.remove('hidden');
+  $('player-modal').setAttribute('aria-hidden', 'false');
+  // If already have a session, try to load profile silently
+  if (playerState.data) {
+    showPlayerProfile(playerState.data);
+  } else {
+    loadPlayerSession();
+  }
+}
+
+function closePlayerModal() {
+  $('player-modal').classList.add('hidden');
+  $('player-modal').setAttribute('aria-hidden', 'true');
+}
+
+async function loadPlayerSession() {
+  try {
+    const { player } = await request('/api/player/me');
+    playerState.data = player;
+    showPlayerProfile(player);
+    updateLoginButton(player);
+  } catch {
+    showPlayerLogin();
+  }
+}
+
+function showPlayerLogin() {
+  $('player-login-view').classList.remove('hidden');
+  $('player-profile-view').classList.add('hidden');
+}
+
+function showPlayerProfile(player) {
+  $('player-login-view').classList.add('hidden');
+  $('player-profile-view').classList.remove('hidden');
+
+  // Avatar
+  const wrap = $('pp-avatar-wrap');
+  if (player.photoData) {
+    wrap.innerHTML = `<img class="pp-avatar" src="${player.photoData}" alt="${escapeHtml(player.fullName)}" />`;
+  } else {
+    wrap.innerHTML = `<div class="pp-avatar pp-avatar-fallback">${escapeHtml(player.firstName.charAt(0))}</div>`;
+  }
+  $('pp-fullname').textContent    = player.fullName;
+  $('pp-state-badge').textContent = player.state || '';
+
+  // Pre-fill edit form
+  $('pp-first-name').value = player.firstName || '';
+  $('pp-last-name').value  = player.lastName  || '';
+  $('pp-phone').value      = player.phone     || '';
+  $('pp-state').value      = player.state     || '';
+}
+
+function updateLoginButton(player) {
+  const btn = $('player-login-btn');
+  if (!btn) return;
+  if (player) {
+    // Show avatar in button
+    if (player.photoData) {
+      btn.innerHTML = `<img class="header-player-avatar" src="${player.photoData}" alt="${escapeHtml(player.firstName)}" /> ${escapeHtml(player.firstName)}`;
+    } else {
+      btn.innerHTML = `👤 ${escapeHtml(player.firstName)}`;
+    }
+    btn.classList.add('btn-player-active');
+  } else {
+    btn.innerHTML = '🔐 Login';
+    btn.classList.remove('btn-player-active');
+  }
+}
+
+async function submitPlayerLogin(event) {
+  event.preventDefault();
+  const feedback = $('pl-login-feedback');
+  const btn = $('pl-login-btn');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  feedback.textContent = '';
+  try {
+    const { player } = await request('/api/player/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: $('pl-username').value.trim(),
+        password: $('pl-password').value.trim(),
+      }),
+    });
+    playerState.data = player;
+    $('player-login-form').reset();
+    showPlayerProfile(player);
+    updateLoginButton(player);
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+async function submitPlayerLogout() {
+  try {
+    await request('/api/player/logout', { method: 'POST' });
+  } catch { /* ignore */ }
+  playerState.data = null;
+  showPlayerLogin();
+  updateLoginButton(null);
+}
+
+async function submitPlayerInfo(event) {
+  event.preventDefault();
+  const feedback = $('pp-info-feedback');
+  const btn = $('pp-info-btn');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  feedback.textContent = '';
+  try {
+    const { player } = await request('/api/player/me', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        firstName: $('pp-first-name').value.trim(),
+        lastName:  $('pp-last-name').value.trim(),
+        phone:     $('pp-phone').value.trim(),
+        state:     $('pp-state').value,
+      }),
+    });
+    playerState.data = player;
+    showPlayerProfile(player);
+    updateLoginButton(player);
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Dados atualizados!';
+    await loadPublicState();
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar dados';
+  }
+}
+
+async function submitPlayerPhoto() {
+  const feedback = $('pp-photo-feedback');
+  const btn = $('pp-photo-btn');
+  if (!playerState.newPhotoDataUrl) return;
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  feedback.textContent = '';
+  try {
+    const { player } = await request('/api/player/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ photoData: playerState.newPhotoDataUrl }),
+    });
+    playerState.data = player;
+    playerState.newPhotoDataUrl = null;
+    showPlayerProfile(player);
+    updateLoginButton(player);
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Foto atualizada!';
+    $('pp-photo-area').classList.remove('has-photo');
+    $('pp-photo-instructions').style.display = '';
+    $('pp-photo-preview-wrap').style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Salvar nova foto';
+    await loadPublicState();
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+    btn.disabled = false; btn.textContent = 'Salvar nova foto';
+  }
+}
+
+async function submitPlayerPassword(event) {
+  event.preventDefault();
+  const feedback = $('pp-pw-feedback');
+  const btn = $('pp-pw-btn');
+  btn.disabled = true; btn.textContent = 'Alterando…';
+  feedback.textContent = '';
+  try {
+    await request('/api/player/me', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        currentPassword: $('pp-current-pw').value,
+        newPassword:     $('pp-new-pw').value,
+      }),
+    });
+    $('pp-pw-form').reset();
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Senha alterada com sucesso!';
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Alterar senha';
+  }
+}
+
+function initPlayerPhotoUpload() {
+  const area   = $('pp-photo-area');
+  const input  = $('pp-photo-input');
+  const canvas = $('pp-photo-canvas');
+  const btn    = $('pp-photo-btn');
+  if (!area || !input) return;
+  area.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const instr = area.querySelector('.photo-upload-instructions span');
+    if (instr) instr.textContent = 'Processando…';
+    const reader = new FileReader();
+    reader.onload = (ev) => processPhoto(ev.target.result, canvas, () => {
+      playerState.newPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      area.classList.add('has-photo');
+      $('pp-photo-preview-wrap').style.display = 'flex';
+      $('pp-photo-instructions').style.display = 'none';
+      if (btn) btn.disabled = false;
+      input.value = '';
+    });
+    reader.onerror = () => { input.value = ''; };
+    reader.readAsDataURL(file);
+  });
+}
+
+
 
 const BRAZIL_PATHS = {"RR":"M107.4,4.3 L158.3,4.3 L160.5,56.7 L124.3,63.8 L107.4,42.5 Z","AP":"M254.3,14.2 L277.0,17.0 L273.6,70.9 L251.0,73.7 L243.0,49.6 Z","AM":"M11.3,79.4 L73.5,85.1 L101.7,106.3 L104.0,212.7 L73.5,233.9 L11.3,219.7 L11.3,148.9 Z","PA":"M175.2,42.5 L277.0,52.5 L305.2,99.2 L305.2,198.5 L260.0,198.5 L220.4,163.0 L175.2,134.7 Z","RO":"M90.4,184.3 L158.3,184.3 L160.5,269.4 L118.7,269.4 L96.1,233.9 Z","AC":"M5.7,184.3 L84.8,177.2 L67.8,241.0 L5.7,226.8 Z","MT":"M152.6,184.3 L265.7,184.3 L260.0,333.2 L158.3,311.9 L147.0,248.1 Z","TO":"M265.7,155.9 L316.5,155.9 L316.5,262.3 L260.0,269.4 Z","MA":"M288.3,99.2 L367.4,106.3 L373.0,198.5 L333.5,205.6 L310.9,170.1 L293.9,134.7 Z","PI":"M327.8,113.4 L367.4,113.4 L378.7,233.9 L339.1,241.0 L322.2,170.1 Z","CE":"M367.4,117.7 L412.6,117.7 L443.1,155.9 L412.6,184.3 L378.7,184.3 L367.4,134.7 Z","RN":"M412.6,141.8 L440.9,146.0 L443.1,170.1 L418.3,174.4 Z","PB":"M401.3,163.0 L443.1,163.0 L443.1,191.4 L401.3,191.4 Z","PE":"M367.4,184.3 L440.9,184.3 L443.1,212.7 L401.3,212.7 L367.4,205.6 Z","AL":"M401.3,198.5 L440.9,198.5 L440.9,226.8 L401.3,219.7 Z","SE":"M412.6,219.7 L429.6,219.7 L429.6,241.0 L412.6,233.9 Z","BA":"M316.5,198.5 L412.6,198.5 L412.6,326.1 L390.0,326.1 L378.7,276.5 L322.2,276.5 L310.9,248.1 Z","GO":"M237.4,248.1 L316.5,248.1 L305.2,347.3 L248.7,333.2 L237.4,304.8 Z","DF":"M290.5,297.7 L301.8,297.7 L301.8,306.2 L290.5,306.2 Z","MS":"M180.9,319.0 L260.0,326.1 L254.3,418.2 L220.4,418.2 L180.9,368.6 Z","MG":"M260.0,276.5 L384.3,283.5 L378.7,397.0 L327.8,404.1 L254.3,397.0 L248.7,340.3 Z","ES":"M373.0,326.1 L395.7,326.1 L390.0,382.8 L367.4,375.7 Z","RJ":"M327.8,375.7 L378.7,375.7 L361.7,411.1 L327.8,404.1 Z","SP":"M237.4,354.4 L339.1,361.5 L333.5,418.2 L282.6,439.5 L231.7,418.2 Z","PR":"M220.4,397.0 L293.9,411.1 L288.3,467.8 L220.4,460.8 Z","SC":"M220.4,439.5 L288.3,439.5 L288.3,496.2 L220.4,482.0 Z","RS":"M186.5,460.8 L277.0,460.8 L277.0,557.2 L231.7,557.2 L186.5,517.5 Z"};
 const BRAZIL_CENTROIDS = {"RR":[131.6,34.3],"AP":[259.8,45.1],"AM":[55.2,155.1],"PA":[245.5,127.0],"RO":[124.8,228.3],"AC":[41.0,207.3],"MT":[196.7,252.4],"TO":[289.7,210.9],"MA":[327.8,152.4],"PI":[347.0,174.4],"CE":[397.0,149.1],"RN":[431.7,158.1],"PB":[422.2,177.2],"PE":[404.0,199.9],"AL":[424.1,210.9],"SE":[424.1,228.6],"BA":[363.4,264.3],"GO":[269.0,296.3],"DF":[301.1,301.9],"MS":[219.3,370.0],"MG":[309.0,349.7],"ES":[385.5,352.7],"RJ":[349.0,393.6],"SP":[284.9,398.4],"PR":[255.8,434.2],"SC":[254.4,464.3],"RS":[231.7,510.7]};
@@ -259,6 +475,7 @@ function renderMaps(members, approvedPlayers) {
 }
 
 
+function renderConfirmed(members, maxSlots) {
   const container = $('confirmed-list');
   container.innerHTML = '';
 
@@ -1170,6 +1387,15 @@ function attachEvents() {
   });
   $('admin-logout-btn').addEventListener('click', logoutAdmin);
 
+  // Player modal
+  $('player-login-btn').addEventListener('click', openPlayerModal);
+  document.querySelectorAll('[data-close-player-modal]').forEach((n) => n.addEventListener('click', closePlayerModal));
+  $('player-login-form').addEventListener('submit', submitPlayerLogin);
+  $('pl-logout-btn').addEventListener('click', submitPlayerLogout);
+  $('pp-info-form').addEventListener('submit', submitPlayerInfo);
+  $('pp-photo-btn').addEventListener('click', submitPlayerPhoto);
+  $('pp-pw-form').addEventListener('submit', submitPlayerPassword);
+
   // Ranking tabs
   document.querySelectorAll('.ranking-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -1217,6 +1443,7 @@ function attachEvents() {
 async function bootstrap() {
   attachEvents();
   initPhotoUpload();
+  initPlayerPhotoUpload();
 
   // Triple-click on logo opens admin (hidden entry point)
   const logo = document.querySelector('.club-logo');
@@ -1239,6 +1466,9 @@ async function bootstrap() {
     $('hero-arrival').textContent = 'Erro ao carregar';
     $('hero-window').textContent  = 'Recarregue a página';
   });
+
+  // Silently restore player session if cookie exists
+  loadPlayerSession().catch(() => {});
   try {
     await loadAdminState();
     state.isAdmin = true;

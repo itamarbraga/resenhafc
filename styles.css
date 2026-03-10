@@ -1643,3 +1643,98 @@ select option {
   color: var(--muted);
   margin-top: -4px;
 }
+
+/* ── Player login button (header) ────────────────────────────────────────── */
+
+#player-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-player-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(46, 204, 113, 0.5);
+  flex: 0 0 auto;
+}
+
+#player-login-btn.btn-player-active {
+  border-color: rgba(46, 204, 113, 0.5);
+  background: rgba(46, 204, 113, 0.08);
+  color: var(--text);
+}
+
+/* ── Player profile modal ──────────────────────────────────────────────────── */
+
+.player-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(46, 204, 113, 0.07);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+  margin-bottom: 20px;
+}
+
+.pp-avatar-wrap {
+  flex: 0 0 auto;
+}
+
+.pp-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(46, 204, 113, 0.4);
+  display: block;
+}
+
+.pp-avatar-fallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(46, 204, 113, 0.15);
+  color: #9df3bc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+.player-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-fullname {
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-state-badge {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.player-profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#pp-photo-canvas {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
