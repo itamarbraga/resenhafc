@@ -90,6 +90,16 @@ export async function initializeDb(env) {
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS players (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      phone TEXT,
+      state TEXT NOT NULL,
+      photo_data TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE TABLE IF NOT EXISTS game_days (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       game_date TEXT NOT NULL,
@@ -126,6 +136,8 @@ export async function initializeDb(env) {
   await ensureColumn(env, 'sponsors', 'description', 'description TEXT');
   await ensureColumn(env, 'sponsors', 'cta_label', 'cta_label TEXT');
   await ensureColumn(env, 'members', 'photo_data', 'photo_data TEXT');
+  await ensureColumn(env, 'members', 'player_id', 'player_id INTEGER');
+  await ensureColumn(env, 'members', 'payment_proof', 'payment_proof TEXT');
 
   for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
     await env.DB.prepare(
@@ -195,15 +207,21 @@ export async function saveConfig(env, partialConfig) {
 }
 
 export async function listMembers(env, status = null) {
-  let query = 'SELECT id, name, status, created_at, photo_data FROM members';
+  let query = `
+    SELECT m.id, m.name, m.status, m.created_at, m.player_id, m.payment_proof,
+           COALESCE(p.photo_data, m.photo_data) AS photo_data,
+           p.first_name, p.last_name, p.state, p.phone
+    FROM members m
+    LEFT JOIN players p ON m.player_id = p.id
+  `;
   const binds = [];
 
   if (status) {
-    query += ' WHERE status = ?1';
+    query += ' WHERE m.status = ?1';
     binds.push(status);
   }
 
-  query += ' ORDER BY created_at ASC, id ASC';
+  query += ' ORDER BY m.created_at ASC, m.id ASC';
 
   const statement = env.DB.prepare(query);
   const result = binds.length
@@ -217,6 +235,12 @@ export async function listMembers(env, status = null) {
     createdAt: row.created_at,
     createdAtLabel: prettyCreatedAt(row.created_at),
     photoData: row.photo_data || null,
+    playerId: row.player_id || null,
+    paymentProof: row.payment_proof || null,
+    firstName: row.first_name || null,
+    lastName: row.last_name || null,
+    state: row.state || null,
+    phone: row.phone || null,
   }));
 }
 
@@ -229,9 +253,9 @@ export async function memberExists(env, normalizedName) {
   return Boolean(row?.id);
 }
 
-export async function addMember(env, name, status = 'pending', photoData = null) {
-  await env.DB.prepare('INSERT INTO members (name, status, photo_data) VALUES (?1, ?2, ?3)')
-    .bind(name, status, photoData)
+export async function addMember(env, name, status = 'pending', photoData = null, playerId = null, paymentProof = null) {
+  await env.DB.prepare('INSERT INTO members (name, status, photo_data, player_id, payment_proof) VALUES (?1, ?2, ?3, ?4, ?5)')
+    .bind(name, status, photoData, playerId, paymentProof)
     .run();
 }
 
@@ -339,13 +363,76 @@ export async function deleteSession(env, token) {
     .run();
 }
 
+// ─── Player profiles ─────────────────────────────────────────────────────────
+
+export async function registerPlayer(env, { firstName, lastName, phone, state, photoData }) {
+  const result = await env.DB.prepare(
+    'INSERT INTO players (first_name, last_name, phone, state, photo_data, status) VALUES (?1,?2,?3,?4,?5,?6)'
+  ).bind(firstName, lastName, phone || '', state, photoData, 'pending').run();
+  return result.meta.last_row_id;
+}
+
+export async function listPlayers(env, status = null) {
+  let query = 'SELECT id, first_name, last_name, phone, state, photo_data, status, created_at FROM players';
+  const binds = [];
+  if (status) { query += ' WHERE status = ?1'; binds.push(status); }
+  query += ' ORDER BY first_name ASC, last_name ASC';
+  const stmt = env.DB.prepare(query);
+  const result = binds.length ? await stmt.bind(...binds).all() : await stmt.all();
+  return (result.results || []).map((r) => ({
+    id: r.id,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    fullName: `${r.first_name} ${r.last_name}`,
+    phone: r.phone || '',
+    state: r.state,
+    photoData: r.photo_data || null,
+    status: r.status,
+    createdAt: r.created_at,
+    createdAtLabel: prettyCreatedAt(r.created_at),
+  }));
+}
+
+export async function updatePlayerStatus(env, id, status) {
+  await env.DB.prepare('UPDATE players SET status = ?1 WHERE id = ?2').bind(status, id).run();
+}
+
+export async function deletePlayer(env, id) {
+  await env.DB.prepare('DELETE FROM players WHERE id = ?1').bind(id).run();
+}
+
+export async function getPlayer(env, id) {
+  const row = await env.DB
+    .prepare('SELECT id, first_name, last_name, phone, state, photo_data, status FROM players WHERE id = ?1')
+    .bind(id).first();
+  if (!row) return null;
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    fullName: `${row.first_name} ${row.last_name}`,
+    phone: row.phone || '',
+    state: row.state,
+    photoData: row.photo_data || null,
+    status: row.status,
+  };
+}
+
+export async function playerExists(env, firstName, lastName) {
+  const row = await env.DB
+    .prepare('SELECT id FROM players WHERE lower(first_name) = ?1 AND lower(last_name) = ?2 LIMIT 1')
+    .bind(firstName.toLowerCase(), lastName.toLowerCase()).first();
+  return Boolean(row?.id);
+}
+
 export async function buildPublicState(env) {
-  const [config, members, sponsors, teams, stats] = await Promise.all([
+  const [config, members, sponsors, teams, stats, approvedPlayers] = await Promise.all([
     getConfig(env),
     listMembers(env, 'confirmed'),
     listSponsors(env),
     listTeams(env),
     buildStats(env),
+    listPlayers(env, 'approved'),
   ]);
 
   return {
@@ -354,6 +441,7 @@ export async function buildPublicState(env) {
     sponsors,
     teams,
     stats,
+    approvedPlayers,
     storage: 'Cloudflare Pages + D1 ativo',
   };
 }
@@ -434,9 +522,11 @@ export async function buildStats(env) {
               ORDER BY total_goals DESC`)
     .all();
 
-  // Get member photos for lookup
+  // Get member photos — prefer players profile, fallback to member photo
   const memberRows = await env.DB
-    .prepare('SELECT name, photo_data FROM members WHERE status = ?1')
+    .prepare(`SELECT m.name, COALESCE(p.photo_data, m.photo_data) AS photo_data
+              FROM members m LEFT JOIN players p ON m.player_id = p.id
+              WHERE m.status = ?1`)
     .bind('confirmed')
     .all();
   const photoMap = {};

@@ -55,7 +55,7 @@ function renderPublic() {
   const data = state.publicData;
   if (!data) return;
 
-  const { config, members, sponsors, teams, storage, stats } = data;
+  const { config, members, sponsors, teams, storage, stats, approvedPlayers } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
   $('hero-arrival').textContent = `Chegada ${config.arrivalTime}`;
   $('hero-window').textContent = `${config.startTime} — ${config.endTime}`;
@@ -81,6 +81,7 @@ function renderPublic() {
   renderSponsors(sponsors);
   renderTeams(teams);
   renderRankings(stats);
+  populatePlayerDropdown(approvedPlayers || []);
   startCountdown(config.gameDate, config.startTime);
 }
 
@@ -237,27 +238,100 @@ function startCountdown(gameDate, startTime) {
 // ─── Photo capture & stylize ────────────────────────────────────────────────
 
 const photoState = { dataUrl: null };
+const proofState = { dataUrl: null };
 
 function initPhotoUpload() {
-  const area = $('photo-upload-area');
-  const input = $('photo-input');
+  // Profile photo (with face crop + filter)
+  const area   = $('photo-upload-area');
+  const input  = $('photo-input');
   const canvas = $('photo-canvas');
-  const submitBtn = $('join-submit-btn');
-  if (!area) return;
+  const regBtn = $('register-submit-btn');
+  if (area && input) {
+    area.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => processPhoto(ev.target.result, canvas, () => {
+        area.classList.add('has-photo');
+        $('photo-preview-wrap').style.display = 'flex';
+        if (regBtn) regBtn.disabled = false;
+      });
+      reader.readAsDataURL(file);
+    });
+  }
 
-  area.addEventListener('click', () => input.click());
-  area.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+  // Payment proof (no crop, just compress)
+  const proofArea  = $('proof-upload-area');
+  const proofInput = $('proof-input');
+  const joinBtn    = $('join-submit-btn');
+  if (proofArea && proofInput) {
+    proofArea.addEventListener('click', () => proofInput.click());
+    proofInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        compressImage(ev.target.result, 800, 0.82, (dataUrl) => {
+          proofState.dataUrl = dataUrl;
+          const img = $('proof-preview-img');
+          img.src = dataUrl;
+          img.style.display = 'block';
+          $('proof-preview-wrap').style.display = 'flex';
+          $('proof-instructions').style.display = 'none';
+          proofArea.classList.add('has-photo');
+          updateJoinSubmitState();
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
-  input.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => processPhoto(ev.target.result, canvas, submitBtn);
-    reader.readAsDataURL(file);
+  // Signup tabs
+  document.querySelectorAll('.signup-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.signup-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.signupTab;
+      $('signup-panel-register').classList.toggle('hidden', target !== 'register');
+      $('signup-panel-join').classList.toggle('hidden', target !== 'join');
+    });
   });
 }
 
-function processPhoto(srcDataUrl, canvas, submitBtn) {
+function compressImage(srcDataUrl, maxDim, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.src = srcDataUrl;
+}
+
+function updateJoinSubmitState() {
+  const btn = $('join-submit-btn');
+  const playerSelected = $('join-player-select')?.value;
+  if (btn) btn.disabled = !(playerSelected && proofState.dataUrl);
+}
+
+function populatePlayerDropdown(players) {
+  const sel = $('join-player-select');
+  if (!sel) return;
+  if (!players || !players.length) {
+    sel.innerHTML = '<option value="">Nenhum jogador aprovado ainda</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Selecione seu perfil...</option>' +
+    players.map((p) => `<option value="${p.id}">${escapeHtml(p.fullName)} — ${p.state}</option>`).join('');
+  sel.addEventListener('change', updateJoinSubmitState);
+}
+
+function processPhoto(srcDataUrl, canvas, onDone) {
   const img = new Image();
   img.onload = () => {
     const size = 120;
@@ -265,25 +339,19 @@ function processPhoto(srcDataUrl, canvas, submitBtn) {
     canvas.width = size;
     canvas.height = size;
 
-    // Square crop: take center portion, bias toward top (face area)
     const minDim = Math.min(img.width, img.height);
     const cropSize = minDim;
     const sx = (img.width - cropSize) / 2;
-    // Bias 25% from top to capture face better
     const sy = Math.max(0, (img.height - cropSize) * 0.25);
 
-    // Draw circular clip
     ctx.save();
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.clip();
-
-    // Apply subtle "illustrated" filter
     ctx.filter = 'contrast(1.25) saturate(0.75) brightness(1.05)';
     ctx.drawImage(img, sx, sy, cropSize, cropSize, 0, 0, size, size);
     ctx.restore();
 
-    // Slight vignette overlay
     const vignette = ctx.createRadialGradient(size/2, size/2, size*0.3, size/2, size/2, size/2);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
     vignette.addColorStop(1, 'rgba(0,0,0,0.22)');
@@ -295,56 +363,86 @@ function processPhoto(srcDataUrl, canvas, submitBtn) {
     ctx.fillRect(0, 0, size, size);
     ctx.restore();
 
-    // Export as JPEG compressed (~15-30 KB)
     photoState.dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-
-    // Update UI
-    const area = $('photo-upload-area');
-    area.classList.add('has-photo');
-    $('photo-preview-wrap').style.display = 'flex';
-    if (submitBtn) submitBtn.disabled = false;
+    if (onDone) onDone();
   };
   img.src = srcDataUrl;
 }
 
+async function submitRegisterForm(event) {
+  event.preventDefault();
+  const feedback = $('register-feedback');
+  const btn = $('register-submit-btn');
+  feedback.textContent = '';
+
+  const firstName = $('reg-first-name').value.trim();
+  const lastName  = $('reg-last-name').value.trim();
+  const phone     = $('reg-phone').value.trim();
+  const state     = $('reg-state').value;
+
+  if (!firstName || !lastName) { feedback.textContent = 'Nome e sobrenome são obrigatórios.'; return; }
+  if (!state) { feedback.textContent = 'Selecione seu estado.'; return; }
+  if (!photoState.dataUrl) { feedback.textContent = 'Adicione sua foto de perfil.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  try {
+    await request('/api/register', {
+      method: 'POST',
+      body: JSON.stringify({ firstName, lastName, phone, state, photoData: photoState.dataUrl }),
+    });
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Cadastro enviado! Aguarde a aprovação do admin para entrar na lista.';
+    $('register-form').reset();
+    photoState.dataUrl = null;
+    $('photo-upload-area')?.classList.remove('has-photo');
+    $('photo-canvas')?.getContext('2d').clearRect(0, 0, 120, 120);
+    btn.disabled = true;
+    btn.textContent = 'Cadastrar perfil';
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+    btn.disabled = false;
+    btn.textContent = 'Cadastrar perfil';
+  }
+}
+
 async function submitJoinForm(event) {
   event.preventDefault();
-  const input = $('join-name');
   const feedback = $('join-feedback');
-  const submitBtn = $('join-submit-btn');
-  const name = input.value.trim();
-  if (!name) return;
+  const btn = $('join-submit-btn');
+  const playerId = Number($('join-player-select').value);
 
-  if (!photoState.dataUrl) {
-    feedback.textContent = 'Por favor, adicione sua foto antes de enviar.';
-    return;
-  }
+  if (!playerId) { feedback.textContent = 'Selecione seu perfil.'; return; }
+  if (!proofState.dataUrl) { feedback.textContent = 'Anexe o comprovante de pagamento.'; return; }
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Enviando…';
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  feedback.textContent = '';
 
   try {
     await request('/api/join', {
       method: 'POST',
-      body: JSON.stringify({ name, photoData: photoState.dataUrl }),
+      body: JSON.stringify({ playerId, paymentProof: proofState.dataUrl }),
     });
     feedback.style.color = 'var(--green)';
-    feedback.textContent = '✓ Nome enviado! Aguarde a aprovação do admin.';
-    input.value = '';
-    photoState.dataUrl = null;
-    const area = $('photo-upload-area');
-    if (area) area.classList.remove('has-photo');
-    const canvas = $('photo-canvas');
-    if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Entrar na lista';
+    feedback.textContent = '✓ Pedido enviado! Aguarde a aprovação do admin.';
+    proofState.dataUrl = null;
+    $('proof-upload-area')?.classList.remove('has-photo');
+    const img = $('proof-preview-img');
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    $('proof-instructions').style.display = '';
+    $('join-player-select').value = '';
+    btn.disabled = true;
+    btn.textContent = 'Entrar na lista';
     await loadPublicState();
     if (state.isAdmin) await loadAdminState();
   } catch (err) {
     feedback.style.color = 'var(--yellow)';
     feedback.textContent = err.message;
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Entrar na lista';
+    btn.disabled = false;
+    btn.textContent = 'Entrar na lista';
   }
 }
 
@@ -396,10 +494,80 @@ function renderAdmin() {
   $('cfg-payment-link').value = data.config.paymentLink;
   $('cfg-max-slots').value = data.config.maxSlots;
 
+  renderPendingPlayers(data.pendingPlayers || []);
+  renderApprovedPlayers(data.approvedPlayers || []);
   renderPendingAdmin(data.pendingMembers || []);
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
   renderAdminGameResults(data.members || [], data.gameDays || []);
+}
+
+function renderPendingPlayers(items) {
+  const container = $('pending-players-list');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-state">Nenhum cadastro pendente.</div>';
+    return;
+  }
+  container.innerHTML = items.map((p) => `
+    <div class="admin-item">
+      <div class="admin-item-profile">
+        ${p.photoData ? `<img class="admin-player-avatar" src="${p.photoData}" alt="${escapeHtml(p.fullName)}" />` : `<div class="admin-player-avatar admin-player-avatar-fallback">${p.firstName.charAt(0)}</div>`}
+        <div>
+          <div class="name">${escapeHtml(p.fullName)}</div>
+          <div class="meta">${escapeHtml(p.state)} · ${escapeHtml(p.phone || '—')} · ${escapeHtml(p.createdAtLabel)}</div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-primary btn-sm" data-approve-player="${p.id}">Aprovar</button>
+        <button class="btn btn-danger btn-sm" data-delete-player="${p.id}">Rejeitar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderApprovedPlayers(items) {
+  const container = $('approved-players-list');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-state">Nenhum jogador aprovado ainda.</div>';
+    return;
+  }
+  container.innerHTML = items.map((p) => `
+    <div class="admin-item">
+      <div class="admin-item-profile">
+        ${p.photoData ? `<img class="admin-player-avatar" src="${p.photoData}" alt="${escapeHtml(p.fullName)}" />` : `<div class="admin-player-avatar admin-player-avatar-fallback">${p.firstName.charAt(0)}</div>`}
+        <div>
+          <div class="name">${escapeHtml(p.fullName)}</div>
+          <div class="meta">${escapeHtml(p.state)} · ${escapeHtml(p.phone || '—')}</div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-danger btn-sm" data-delete-player="${p.id}">Remover</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function handlePlayerListClick(event) {
+  const approveId = event.target.getAttribute('data-approve-player');
+  const deleteId  = event.target.getAttribute('data-delete-player');
+  if (!approveId && !deleteId) return;
+  try {
+    if (approveId) {
+      await request('/api/admin/players', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: Number(approveId), action: 'approve' }),
+      });
+    }
+    if (deleteId) {
+      await request('/api/admin/players', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: Number(deleteId) }),
+      });
+    }
+    await Promise.all([loadPublicState(), loadAdminState()]);
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 function renderPendingAdmin(items) {
@@ -411,11 +579,15 @@ function renderPendingAdmin(items) {
 
   container.innerHTML = items.map((item) => `
     <div class="admin-item">
-      <div>
-        <div class="name">${escapeHtml(item.name)}</div>
-        <div class="meta">Pedido enviado em ${escapeHtml(item.createdAtLabel)}</div>
+      <div class="admin-item-profile">
+        ${item.photoData ? `<img class="admin-player-avatar" src="${item.photoData}" alt="${escapeHtml(item.name)}" />` : `<div class="admin-player-avatar admin-player-avatar-fallback">${item.name.charAt(0)}</div>`}
+        <div>
+          <div class="name">${escapeHtml(item.name)}</div>
+          <div class="meta">Pedido em ${escapeHtml(item.createdAtLabel)}</div>
+        </div>
       </div>
       <div class="row-actions">
+        ${item.paymentProof ? `<a class="btn btn-ghost btn-sm" href="${item.paymentProof}" target="_blank" rel="noopener">Ver comprovante</a>` : ''}
         <button class="btn btn-primary btn-sm" data-approve-id="${item.id}">Aprovar</button>
         <button class="btn btn-danger btn-sm" data-delete-id="${item.id}">Remover</button>
       </div>
@@ -717,6 +889,7 @@ async function saveGameResults() {
 }
 
 function attachEvents() {
+  $('register-form').addEventListener('submit', submitRegisterForm);
   $('join-form').addEventListener('submit', submitJoinForm);
   $('scroll-signup-btn').addEventListener('click', () => {
     $('signup-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -726,6 +899,8 @@ function attachEvents() {
   $('admin-login-form').addEventListener('submit', loginAdmin);
   $('config-form').addEventListener('submit', saveConfig);
   $('add-member-form').addEventListener('submit', addConfirmedMember);
+  $('pending-players-list').addEventListener('click', handlePlayerListClick);
+  $('approved-players-list').addEventListener('click', handlePlayerListClick);
   $('pending-list').addEventListener('click', handleAdminListClick);
   $('admin-members-list').addEventListener('click', handleAdminListClick);
   $('generate-teams-btn').addEventListener('click', generateTeams);

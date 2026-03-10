@@ -123,20 +123,55 @@
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Confirmação</p>
-              <h2>Entrar na lista</h2>
+              <p class="section-kicker">Participar</p>
+              <h2>Cadastro & Lista</h2>
             </div>
           </div>
 
-          <div class="signup-card">
-            <form id="join-form" class="join-form">
-              <label class="field">
-                <span>Seu nome</span>
-                <input id="join-name" type="text" placeholder="Digite seu nome" maxlength="60" required />
-              </label>
+          <!-- Tabs -->
+          <div class="signup-tabs">
+            <button class="signup-tab active" data-signup-tab="register">👤 Cadastrar perfil</button>
+            <button class="signup-tab" data-signup-tab="join">⚽ Entrar na lista</button>
+          </div>
+
+          <!-- ── Tab 1: Register profile ──────────────────────────────────── -->
+          <div id="signup-panel-register" class="signup-card">
+            <p class="signup-tab-desc">Cadastre-se uma vez. Seu perfil fica salvo para todos os jogos futuros.</p>
+            <form id="register-form" class="join-form">
+
+              <div class="field-row">
+                <label class="field">
+                  <span>Nome</span>
+                  <input id="reg-first-name" type="text" placeholder="Primeiro nome" maxlength="40" required />
+                </label>
+                <label class="field">
+                  <span>Sobrenome</span>
+                  <input id="reg-last-name" type="text" placeholder="Sobrenome" maxlength="40" required />
+                </label>
+              </div>
+
+              <div class="field-row">
+                <label class="field">
+                  <span>Telefone / WhatsApp</span>
+                  <input id="reg-phone" type="tel" placeholder="+55 11 99999-9999" maxlength="30" />
+                </label>
+                <label class="field">
+                  <span>Estado <span class="required-badge">obrigatório</span></span>
+                  <select id="reg-state" required>
+                    <option value="">Selecione...</option>
+                    <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                    <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                    <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                    <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                    <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                    <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                    <option>SP</option><option>SE</option><option>TO</option>
+                  </select>
+                </label>
+              </div>
 
               <label class="field">
-                <span>Sua foto <span class="required-badge">obrigatório</span></span>
+                <span>Foto de perfil <span class="required-badge">obrigatório</span></span>
                 <div class="photo-upload-area" id="photo-upload-area">
                   <div class="photo-preview-wrap" id="photo-preview-wrap">
                     <canvas id="photo-canvas" width="120" height="120"></canvas>
@@ -150,15 +185,49 @@
                 </div>
               </label>
 
+              <button type="submit" class="btn btn-primary btn-large" id="register-submit-btn" disabled>
+                Cadastrar perfil
+              </button>
+            </form>
+            <p id="register-feedback" class="form-feedback"></p>
+          </div>
+
+          <!-- ── Tab 2: Join game list ────────────────────────────────────── -->
+          <div id="signup-panel-join" class="signup-card hidden">
+            <p class="signup-tab-desc">Selecione seu perfil e envie o comprovante de pagamento para entrar na lista.</p>
+            <form id="join-form" class="join-form">
+
+              <label class="field">
+                <span>Seu perfil <span class="required-badge">obrigatório</span></span>
+                <select id="join-player-select" required>
+                  <option value="">Carregando perfis...</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Comprovante de pagamento <span class="required-badge">obrigatório</span></span>
+                <div class="photo-upload-area" id="proof-upload-area">
+                  <div class="photo-preview-wrap" id="proof-preview-wrap">
+                    <img id="proof-preview-img" src="" alt="Comprovante" style="display:none;max-width:180px;max-height:120px;border-radius:8px;" />
+                  </div>
+                  <div class="photo-upload-instructions" id="proof-instructions">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Toque para anexar comprovante</span>
+                    <small>Foto da transferência ou PIX</small>
+                  </div>
+                  <input id="proof-input" type="file" accept="image/*" style="display:none" />
+                </div>
+              </label>
+
               <button type="submit" class="btn btn-primary btn-large" id="join-submit-btn" disabled>
                 Entrar na lista
               </button>
             </form>
-
             <p id="join-feedback" class="form-feedback"></p>
           </div>
         </div>
       </section>
+
 
       <section class="section-block">
         <div class="container">
@@ -344,7 +413,19 @@
         </section>
 
         <section class="admin-section">
-          <h3>Pendências</h3>
+          <h3>👤 Cadastros pendentes</h3>
+          <p class="admin-hint">Perfis aguardando aprovação. Verifique a foto antes de aprovar.</p>
+          <div id="pending-players-list" class="admin-list"></div>
+        </section>
+
+        <section class="admin-section">
+          <h3>✅ Jogadores cadastrados</h3>
+          <div id="approved-players-list" class="admin-list"></div>
+        </section>
+
+        <section class="admin-section">
+          <h3>📋 Pedidos para entrar na lista</h3>
+          <p class="admin-hint">Verifique o comprovante antes de aprovar.</p>
           <div id="pending-list" class="admin-list"></div>
         </section>
 
