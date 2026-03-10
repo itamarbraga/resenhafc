@@ -24,17 +24,22 @@ function escapeHtml(value) {
 
 async function request(url, options = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000); // 12s timeout
+  const timer = setTimeout(() => controller.abort(), 12000);
+
+  const method = (options.method || 'GET').toUpperCase();
+  const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
 
   let response;
   try {
     response = await fetch(url, {
-      credentials: 'include',
+      credentials: 'same-origin',
       signal: controller.signal,
-      headers: {
+      // Only send Content-Type on requests that have a body
+      // Safari iOS rejects GET requests that have content-type headers
+      headers: isWrite ? {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
-      },
+      } : (options.headers || {}),
       ...options,
     });
   } catch (err) {
@@ -139,15 +144,6 @@ const STATE_HUES = (() => {
   return hues;
 })();
 
-function stateColor(code, count) {
-  if (code === 'INTL') return null;
-  const h = STATE_HUES[code] ?? 200;
-  if (!count) return `hsla(${h},22%,52%,0.55)`;  // more visible on dark bg
-  const lightness = Math.min(72, 52 + count * 4);
-  const sat       = Math.min(90, 60 + count * 6);
-  return `hsla(${h},${sat}%,${lightness}%,0.95)`;
-}
-
 function buildStateCounts(list) {
   const counts = {};
   (list || []).forEach((item) => {
@@ -165,35 +161,45 @@ function renderBrazilMap(list, svgId, legendId) {
   const counts = buildStateCounts(list);
   const ns     = 'http://www.w3.org/2000/svg';
 
-  // Clear
   svg.innerHTML   = '';
   legend.innerHTML = '';
 
-  // Dark background rect so SVG area is always visible
+  // Subtle map background
   const bg = document.createElementNS(ns, 'rect');
   bg.setAttribute('width', '520');
   bg.setAttribute('height', '560');
   bg.setAttribute('rx', '12');
-  bg.setAttribute('fill', 'rgba(255,255,255,0.03)');
-  bg.setAttribute('stroke', 'rgba(255,255,255,0.06)');
-  bg.setAttribute('stroke-width', '1');
+  bg.setAttribute('fill', 'rgba(255,255,255,0.02)');
   svg.appendChild(bg);
 
-  // Draw each state
+  // Draw every state — always visible outline, fill scales with count
   Object.entries(BRAZIL_PATHS).forEach(([code, d]) => {
     const count = counts[code] || 0;
-    const fill  = stateColor(code, count);
+    const h     = STATE_HUES[code] ?? 200;
+
+    // Fill: neutral grey outline always visible; colour when populated
+    const fill   = count
+      ? `hsla(${h},${Math.min(85,55+count*7)}%,${Math.min(70,48+count*4)}%,0.90)`
+      : 'rgba(255,255,255,0.06)';
+    const stroke = count
+      ? `hsla(${h},60%,70%,0.6)`
+      : 'rgba(255,255,255,0.20)';
 
     const path = document.createElementNS(ns, 'path');
     path.setAttribute('d', d);
     path.setAttribute('fill', fill);
-    path.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+    path.setAttribute('stroke', stroke);
     path.setAttribute('stroke-width', '1.2');
-    path.setAttribute('class', 'map-state');
-    if (count) path.setAttribute('data-count', count);
+    path.setAttribute('stroke-linejoin', 'round');
+    if (count) {
+      path.setAttribute('class', 'map-state map-state--active');
+      path.setAttribute('data-count', count);
+    } else {
+      path.setAttribute('class', 'map-state');
+    }
     svg.appendChild(path);
 
-    // State abbreviation label inside polygon
+    // Label: code inside state
     const [cx, cy] = BRAZIL_CENTROIDS[code];
     const text = document.createElementNS(ns, 'text');
     text.setAttribute('x', cx);
@@ -201,21 +207,20 @@ function renderBrazilMap(list, svgId, legendId) {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('font-size', code === 'DF' ? '5' : '9');
     text.setAttribute('font-weight', '700');
-    text.setAttribute('fill', count ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.28)');
+    text.setAttribute('fill', count ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.40)');
     text.setAttribute('pointer-events', 'none');
     text.textContent = code;
     svg.appendChild(text);
   });
 
-  // Legend: only states with people, sorted by count desc
+  // Legend — only states with people
   const active = Object.entries(counts)
     .filter(([k]) => k !== 'INTL')
     .sort((a, b) => b[1] - a[1]);
-
   const intlCount = counts['INTL'] || 0;
 
   if (!active.length && !intlCount) {
-    legend.innerHTML = '<span class="map-legend-empty">Nenhum estado representado ainda.<br>Os estados vão acender conforme as pessoas se cadastrarem.</span>';
+    legend.innerHTML = '<span class="map-legend-empty">Os estados vão acender conforme as pessoas se cadastrarem.</span>';
     return;
   }
 

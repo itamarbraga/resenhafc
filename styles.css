@@ -1531,8 +1531,12 @@ select option {
   cursor: default;
 }
 
-.map-state[data-count]:hover {
-  filter: brightness(1.25);
+.map-state--active {
+  cursor: pointer;
+}
+
+.map-state--active:hover {
+  filter: brightness(1.3) saturate(1.2);
 }
 
 .map-legend {
