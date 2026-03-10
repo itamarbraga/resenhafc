@@ -12,4 +12,3 @@
 /api/*
   Cache-Control: no-store, no-cache, must-revalidate
   Pragma: no-cache
-  Content-Type: application/json; charset=utf-8

@@ -24,23 +24,29 @@ function escapeHtml(value) {
 
 async function request(url, options = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  // 8s — tighter than iOS Safari's 60s, so we can show a friendly error
+  const timer = setTimeout(() => controller.abort(), 8000);
 
   const method = (options.method || 'GET').toUpperCase();
   const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
 
+  // Safari caches aggressively even with Cache-Control: no-store. Add a cache-buster.
+  const fetchUrl = (!isWrite && !url.includes('?'))
+    ? url + '?_=' + Date.now()
+    : url;
+
   let response;
   try {
-    response = await fetch(url, {
+    response = await fetch(fetchUrl, {
+      method,
       credentials: 'same-origin',
+      cache: 'no-store',
       signal: controller.signal,
-      // Only send Content-Type on requests that have a body
-      // Safari iOS rejects GET requests that have content-type headers
       headers: isWrite ? {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
       } : (options.headers || {}),
-      ...options,
+      ...(isWrite && options.body ? { body: options.body } : {}),
     });
   } catch (err) {
     clearTimeout(timer);
@@ -1568,4 +1574,23 @@ async function bootstrap() {
 
 bootstrap().catch(() => {
   // Errors already surfaced via showLoadError banner
+});
+
+// iOS Safari bfcache fix: when the user navigates back, the page is restored
+// from cache in a frozen state. The 'pageshow' event with persisted=true fires,
+// but fetch calls silently fail because the network stack isn't re-attached.
+// Solution: reload public state whenever the page becomes visible again.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    // Page restored from bfcache — re-fetch to unfreeze the UI
+    loadPublicState().catch(() => {});
+    loadPlayerSession().catch(() => {});
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.publicData === null) {
+    // Page became visible but data never loaded — retry (e.g. phone woke from sleep mid-load)
+    loadPublicState().catch(() => {});
+  }
 });

@@ -55,7 +55,21 @@ async function ensureColumn(env, tableName, columnName, columnSql) {
   }
 }
 
+// Cache initialization — runs at most once per Worker isolate lifetime.
+// Cloudflare isolates are reused across requests, so this avoids 30+ sequential
+// D1 queries on every API hit (the #1 cause of cold-start timeouts on mobile).
+let _dbInitialized = false;
+let _dbInitPromise = null;
+
 export async function initializeDb(env) {
+  if (_dbInitialized) return;
+  if (_dbInitPromise) { await _dbInitPromise; return; }
+  _dbInitPromise = _runInit(env);
+  await _dbInitPromise;
+  _dbInitialized = true;
+}
+
+async function _runInit(env) {
   const statements = [
     `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -186,7 +200,7 @@ export async function initializeDb(env) {
         .run();
     }
   }
-}
+} // end _runInit
 
 export async function getConfig(env) {
   const rows = await env.DB.prepare('SELECT key, value FROM settings').all();
