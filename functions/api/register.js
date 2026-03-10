@@ -6,6 +6,7 @@ const MAX_PHOTO_BYTES = 200 * 1024;
 const BR_STATES = new Set([
   'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
   'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+  'INTL',
 ]);
 
 export async function onRequestPost(context) {

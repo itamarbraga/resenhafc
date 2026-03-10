@@ -159,6 +159,8 @@
                   <span>Estado <span class="required-badge">obrigatório</span></span>
                   <select id="reg-state" required>
                     <option value="">Selecione...</option>
+                    <option value="INTL">🌍 Internacional</option>
+                    <option disabled>── Brasil ──</option>
                     <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
                     <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
                     <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
@@ -240,6 +242,17 @@
 
           <div id="confirmed-list" class="confirmed-grid"></div>
 
+          <!-- map: game list states -->
+          <div class="brazil-map-block" id="game-map-block" style="display:none">
+            <div class="brazil-map-header">
+              <span class="brazil-map-title">🗺️ Representação na lista</span>
+            </div>
+            <div class="brazil-map-wrap">
+              <svg id="game-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+              <div id="game-map-legend" class="map-legend"></div>
+            </div>
+          </div>
+
           <template id="confirmed-item-template">
             <div class="confirmed-item">
               <span class="confirmed-index">1</span>
@@ -250,6 +263,22 @@
               <span class="confirmed-name">Nome</span>
             </div>
           </template>
+        </div>
+      </section>
+
+      <!-- ── Members map ────────────────────────────────────────────────── -->
+      <section class="section-block" id="members-map-section" style="display:none">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Comunidade</p>
+              <h2>Mapa de membros</h2>
+            </div>
+          </div>
+          <div class="brazil-map-wrap">
+            <svg id="members-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="members-map-legend" class="map-legend"></div>
+          </div>
         </div>
       </section>
 

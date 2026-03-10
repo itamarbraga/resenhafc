@@ -78,6 +78,7 @@ function renderPublic() {
   $('progress-fill').style.width = `${progress}%`;
 
   renderConfirmed(members, config.maxSlots);
+  renderMaps(members, approvedPlayers);
   renderSponsors(sponsors);
   renderTeams(teams, benchTeam);
   renderRankings(stats);
@@ -85,7 +86,135 @@ function renderPublic() {
   startCountdown(config.gameDate, config.startTime);
 }
 
-function renderConfirmed(members, maxSlots) {
+// ─── Brazil Map ─────────────────────────────────────────────────────────────
+
+const BRAZIL_PATHS = {"RR":"M107.4,4.3 L158.3,4.3 L160.5,56.7 L124.3,63.8 L107.4,42.5 Z","AP":"M254.3,14.2 L277.0,17.0 L273.6,70.9 L251.0,73.7 L243.0,49.6 Z","AM":"M11.3,79.4 L73.5,85.1 L101.7,106.3 L104.0,212.7 L73.5,233.9 L11.3,219.7 L11.3,148.9 Z","PA":"M175.2,42.5 L277.0,52.5 L305.2,99.2 L305.2,198.5 L260.0,198.5 L220.4,163.0 L175.2,134.7 Z","RO":"M90.4,184.3 L158.3,184.3 L160.5,269.4 L118.7,269.4 L96.1,233.9 Z","AC":"M5.7,184.3 L84.8,177.2 L67.8,241.0 L5.7,226.8 Z","MT":"M152.6,184.3 L265.7,184.3 L260.0,333.2 L158.3,311.9 L147.0,248.1 Z","TO":"M265.7,155.9 L316.5,155.9 L316.5,262.3 L260.0,269.4 Z","MA":"M288.3,99.2 L367.4,106.3 L373.0,198.5 L333.5,205.6 L310.9,170.1 L293.9,134.7 Z","PI":"M327.8,113.4 L367.4,113.4 L378.7,233.9 L339.1,241.0 L322.2,170.1 Z","CE":"M367.4,117.7 L412.6,117.7 L443.1,155.9 L412.6,184.3 L378.7,184.3 L367.4,134.7 Z","RN":"M412.6,141.8 L440.9,146.0 L443.1,170.1 L418.3,174.4 Z","PB":"M401.3,163.0 L443.1,163.0 L443.1,191.4 L401.3,191.4 Z","PE":"M367.4,184.3 L440.9,184.3 L443.1,212.7 L401.3,212.7 L367.4,205.6 Z","AL":"M401.3,198.5 L440.9,198.5 L440.9,226.8 L401.3,219.7 Z","SE":"M412.6,219.7 L429.6,219.7 L429.6,241.0 L412.6,233.9 Z","BA":"M316.5,198.5 L412.6,198.5 L412.6,326.1 L390.0,326.1 L378.7,276.5 L322.2,276.5 L310.9,248.1 Z","GO":"M237.4,248.1 L316.5,248.1 L305.2,347.3 L248.7,333.2 L237.4,304.8 Z","DF":"M290.5,297.7 L301.8,297.7 L301.8,306.2 L290.5,306.2 Z","MS":"M180.9,319.0 L260.0,326.1 L254.3,418.2 L220.4,418.2 L180.9,368.6 Z","MG":"M260.0,276.5 L384.3,283.5 L378.7,397.0 L327.8,404.1 L254.3,397.0 L248.7,340.3 Z","ES":"M373.0,326.1 L395.7,326.1 L390.0,382.8 L367.4,375.7 Z","RJ":"M327.8,375.7 L378.7,375.7 L361.7,411.1 L327.8,404.1 Z","SP":"M237.4,354.4 L339.1,361.5 L333.5,418.2 L282.6,439.5 L231.7,418.2 Z","PR":"M220.4,397.0 L293.9,411.1 L288.3,467.8 L220.4,460.8 Z","SC":"M220.4,439.5 L288.3,439.5 L288.3,496.2 L220.4,482.0 Z","RS":"M186.5,460.8 L277.0,460.8 L277.0,557.2 L231.7,557.2 L186.5,517.5 Z"};
+const BRAZIL_CENTROIDS = {"RR":[131.6,34.3],"AP":[259.8,45.1],"AM":[55.2,155.1],"PA":[245.5,127.0],"RO":[124.8,228.3],"AC":[41.0,207.3],"MT":[196.7,252.4],"TO":[289.7,210.9],"MA":[327.8,152.4],"PI":[347.0,174.4],"CE":[397.0,149.1],"RN":[431.7,158.1],"PB":[422.2,177.2],"PE":[404.0,199.9],"AL":[424.1,210.9],"SE":[424.1,228.6],"BA":[363.4,264.3],"GO":[269.0,296.3],"DF":[301.1,301.9],"MS":[219.3,370.0],"MG":[309.0,349.7],"ES":[385.5,352.7],"RJ":[349.0,393.6],"SP":[284.9,398.4],"PR":[255.8,434.2],"SC":[254.4,464.3],"RS":[231.7,510.7]};
+
+// One unique hue per state (evenly spread around the wheel, skipping green ≈ 120° which is our brand)
+const STATE_ORDER = ['AM','PA','MT','GO','MS','BA','MG','SP','RS','PR','SC','RJ','ES','TO','MA','PI','CE','PE','PB','RN','AL','SE','RO','AC','RR','AP','DF'];
+const STATE_HUES = (() => {
+  const hues = {};
+  STATE_ORDER.forEach((s, i) => {
+    // spread 27 states across 360°, offset 200° to avoid brand green
+    hues[s] = Math.round((200 + i * (360 / STATE_ORDER.length)) % 360);
+  });
+  return hues;
+})();
+
+function stateColor(code, count) {
+  if (code === 'INTL') return null; // drawn separately
+  const h = STATE_HUES[code] ?? 200;
+  if (!count) return `hsla(${h},18%,38%,0.35)`;
+  const lightness = Math.min(72, 52 + count * 4);
+  const sat       = Math.min(90, 60 + count * 6);
+  return `hsla(${h},${sat}%,${lightness}%,0.92)`;
+}
+
+function buildStateCounts(list) {
+  const counts = {};
+  (list || []).forEach((item) => {
+    const s = item.state || item.s;
+    if (s) counts[s] = (counts[s] || 0) + 1;
+  });
+  return counts;
+}
+
+function renderBrazilMap(list, svgId, legendId) {
+  const svg    = $(svgId);
+  const legend = $(legendId);
+  if (!svg || !legend) return;
+
+  const counts = buildStateCounts(list);
+  const ns     = 'http://www.w3.org/2000/svg';
+
+  // Clear
+  svg.innerHTML   = '';
+  legend.innerHTML = '';
+
+  // Background rectangle
+  const bg = document.createElementNS(ns, 'rect');
+  bg.setAttribute('width', '520'); bg.setAttribute('height', '560');
+  bg.setAttribute('fill', 'transparent');
+  svg.appendChild(bg);
+
+  // Draw each state
+  Object.entries(BRAZIL_PATHS).forEach(([code, d]) => {
+    const count = counts[code] || 0;
+    const fill  = stateColor(code, count);
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', fill);
+    path.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+    path.setAttribute('stroke-width', '1.2');
+    path.setAttribute('class', 'map-state');
+    if (count) path.setAttribute('data-count', count);
+    svg.appendChild(path);
+
+    // State abbreviation label inside polygon
+    const [cx, cy] = BRAZIL_CENTROIDS[code];
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('x', cx);
+    text.setAttribute('y', cy + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', code === 'DF' ? '5' : '9');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', count ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.28)');
+    text.setAttribute('pointer-events', 'none');
+    text.textContent = code;
+    svg.appendChild(text);
+  });
+
+  // Legend: only states with people, sorted by count desc
+  const active = Object.entries(counts)
+    .filter(([k]) => k !== 'INTL')
+    .sort((a, b) => b[1] - a[1]);
+
+  const intlCount = counts['INTL'] || 0;
+
+  if (!active.length && !intlCount) {
+    legend.innerHTML = '<span class="map-legend-empty">Nenhum estado representado ainda.</span>';
+    return;
+  }
+
+  active.forEach(([code, n]) => {
+    const h    = STATE_HUES[code] ?? 200;
+    const chip = document.createElement('div');
+    chip.className = 'map-legend-item';
+    chip.innerHTML = `
+      <span class="map-legend-dot" style="background:hsla(${h},75%,60%,1)"></span>
+      <span class="map-legend-code">${code}</span>
+      <span class="map-legend-count">${n}</span>`;
+    legend.appendChild(chip);
+  });
+
+  if (intlCount) {
+    const chip = document.createElement('div');
+    chip.className = 'map-legend-item';
+    chip.innerHTML = `
+      <span class="map-legend-dot" style="background:#a78bfa"></span>
+      <span class="map-legend-code">🌍 Intl</span>
+      <span class="map-legend-count">${intlCount}</span>`;
+    legend.appendChild(chip);
+  }
+}
+
+function renderMaps(members, approvedPlayers) {
+  // Game map — confirmed members with state
+  const gameBlock = $('game-map-block');
+  const hasMemberStates = (members || []).some((m) => m.state);
+  if (gameBlock) gameBlock.style.display = hasMemberStates ? '' : 'none';
+  if (hasMemberStates) renderBrazilMap(members, 'game-map-svg', 'game-map-legend');
+
+  // Members map — all approved players
+  const membersSection = $('members-map-section');
+  const hasPlayerStates = (approvedPlayers || []).length > 0;
+  if (membersSection) membersSection.style.display = hasPlayerStates ? '' : 'none';
+  if (hasPlayerStates) renderBrazilMap(approvedPlayers, 'members-map-svg', 'members-map-legend');
+}
+
+
   const container = $('confirmed-list');
   container.innerHTML = '';
 
