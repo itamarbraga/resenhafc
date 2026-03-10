@@ -23,14 +23,27 @@ function escapeHtml(value) {
 }
 
 async function request(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+  let response;
+  try {
+    response = await fetch(url, {
+      credentials: 'include',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão e tente novamente.');
+    throw new Error('Sem conexão. Verifique sua internet e recarregue a página.');
+  }
+
+  clearTimeout(timer);
 
   let payload = {};
   try {
@@ -45,9 +58,34 @@ async function request(url, options = {}) {
   return payload;
 }
 
-async function loadPublicState() {
-  const data = await request('/api/public-state');
-  state.publicData = data;
+function showLoadError(msg) {
+  // Show a visible retry banner on the hero area
+  const banner = document.createElement('div');
+  banner.id = 'load-error-banner';
+  banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a2e22;border:1px solid rgba(231,76,60,0.5);color:#ff9f9f;padding:14px 20px;border-radius:14px;font-size:0.9rem;font-weight:600;z-index:999;display:flex;gap:12px;align-items:center;max-width:calc(100vw - 32px);box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+  banner.innerHTML = `<span>⚠️ ${msg}</span><button onclick="location.reload()" style="background:rgba(46,204,113,0.2);border:1px solid rgba(46,204,113,0.4);color:#2ecc71;padding:6px 14px;border-radius:999px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:0.85rem;">Tentar novamente</button>`;
+  document.body.appendChild(banner);
+}
+
+async function loadPublicState(retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const data = await request('/api/public-state');
+      // Remove any previous error banner on success
+      document.getElementById('load-error-banner')?.remove();
+      state.publicData = data;
+      renderPublic();
+      return;
+    } catch (err) {
+      if (attempt === retries) {
+        showLoadError(err.message);
+        throw err;
+      }
+      // Wait before retrying (1s, 2s)
+      await new Promise((res) => setTimeout(res, attempt * 1000));
+    }
+  }
+}
   renderPublic();
 }
 
@@ -1145,7 +1183,11 @@ async function bootstrap() {
     });
   }
 
-  await loadPublicState();
+  await loadPublicState().catch(() => {
+    $('hero-date').textContent    = '—';
+    $('hero-arrival').textContent = 'Erro ao carregar';
+    $('hero-window').textContent  = 'Recarregue a página';
+  });
   try {
     await loadAdminState();
     state.isAdmin = true;
@@ -1156,6 +1198,6 @@ async function bootstrap() {
   }
 }
 
-bootstrap().catch((error) => {
-  $('storage-badge').textContent = error.message || 'Erro ao carregar';
+bootstrap().catch(() => {
+  // Errors already surfaced via showLoadError banner
 });
