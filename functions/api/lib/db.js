@@ -100,6 +100,7 @@ export async function initializeDb(env) {
   await ensureColumn(env, 'sponsors', 'logo_url', 'logo_url TEXT');
   await ensureColumn(env, 'sponsors', 'description', 'description TEXT');
   await ensureColumn(env, 'sponsors', 'cta_label', 'cta_label TEXT');
+  await ensureColumn(env, 'members', 'photo_data', 'photo_data TEXT');
 
   for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
     await env.DB.prepare(
@@ -169,7 +170,7 @@ export async function saveConfig(env, partialConfig) {
 }
 
 export async function listMembers(env, status = null) {
-  let query = 'SELECT id, name, status, created_at FROM members';
+  let query = 'SELECT id, name, status, created_at, photo_data FROM members';
   const binds = [];
 
   if (status) {
@@ -190,6 +191,7 @@ export async function listMembers(env, status = null) {
     status: row.status,
     createdAt: row.created_at,
     createdAtLabel: prettyCreatedAt(row.created_at),
+    photoData: row.photo_data || null,
   }));
 }
 
@@ -202,9 +204,9 @@ export async function memberExists(env, normalizedName) {
   return Boolean(row?.id);
 }
 
-export async function addMember(env, name, status = 'pending') {
-  await env.DB.prepare('INSERT INTO members (name, status) VALUES (?1, ?2)')
-    .bind(name, status)
+export async function addMember(env, name, status = 'pending', photoData = null) {
+  await env.DB.prepare('INSERT INTO members (name, status, photo_data) VALUES (?1, ?2, ?3)')
+    .bind(name, status, photoData)
     .run();
 }
 

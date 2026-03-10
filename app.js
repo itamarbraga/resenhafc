@@ -97,14 +97,27 @@ function renderConfirmed(members, maxSlots) {
     const node = template.content.firstElementChild.cloneNode(true);
     node.querySelector('.confirmed-index').textContent = String(index + 1);
     node.querySelector('.confirmed-name').textContent = member.name;
+
+    const avatarImg = node.querySelector('.confirmed-avatar');
+    const avatarFallback = node.querySelector('.confirmed-avatar-fallback');
+    if (member.photoData) {
+      avatarImg.src = member.photoData;
+      avatarImg.alt = member.name;
+      avatarImg.style.display = 'block';
+      avatarFallback.style.display = 'none';
+    } else {
+      avatarImg.style.display = 'none';
+      avatarFallback.style.display = 'flex';
+      avatarFallback.textContent = member.name.charAt(0).toUpperCase();
+    }
     container.appendChild(node);
   });
 
   if (members.length < maxSlots) {
     for (let i = members.length; i < maxSlots; i += 1) {
       const empty = document.createElement('div');
-      empty.className = 'confirmed-item';
-      empty.innerHTML = `<span class="confirmed-index">${i + 1}</span><span class="confirmed-name" style="color: var(--muted)">Disponível</span>`;
+      empty.className = 'confirmed-item confirmed-item--empty';
+      empty.innerHTML = `<span class="confirmed-index">${i + 1}</span><div class="confirmed-avatar-wrap"><div class="confirmed-avatar-fallback" style="opacity:0.25">+</div></div><span class="confirmed-name" style="color: var(--muted)">Disponível</span>`;
       container.appendChild(empty);
     }
   }
@@ -220,24 +233,117 @@ function startCountdown(gameDate, startTime) {
   state.countdownTimer = setInterval(tick, 30000);
 }
 
+// ─── Photo capture & stylize ────────────────────────────────────────────────
+
+const photoState = { dataUrl: null };
+
+function initPhotoUpload() {
+  const area = $('photo-upload-area');
+  const input = $('photo-input');
+  const canvas = $('photo-canvas');
+  const submitBtn = $('join-submit-btn');
+  if (!area) return;
+
+  area.addEventListener('click', () => input.click());
+  area.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+
+  input.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => processPhoto(ev.target.result, canvas, submitBtn);
+    reader.readAsDataURL(file);
+  });
+}
+
+function processPhoto(srcDataUrl, canvas, submitBtn) {
+  const img = new Image();
+  img.onload = () => {
+    const size = 120;
+    const ctx = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+
+    // Square crop: take center portion, bias toward top (face area)
+    const minDim = Math.min(img.width, img.height);
+    const cropSize = minDim;
+    const sx = (img.width - cropSize) / 2;
+    // Bias 25% from top to capture face better
+    const sy = Math.max(0, (img.height - cropSize) * 0.25);
+
+    // Draw circular clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Apply subtle "illustrated" filter
+    ctx.filter = 'contrast(1.25) saturate(0.75) brightness(1.05)';
+    ctx.drawImage(img, sx, sy, cropSize, cropSize, 0, 0, size, size);
+    ctx.restore();
+
+    // Slight vignette overlay
+    const vignette = ctx.createRadialGradient(size/2, size/2, size*0.3, size/2, size/2, size/2);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.22)');
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+    ctx.clip();
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, size, size);
+    ctx.restore();
+
+    // Export as JPEG compressed (~15-30 KB)
+    photoState.dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+    // Update UI
+    const area = $('photo-upload-area');
+    area.classList.add('has-photo');
+    $('photo-preview-wrap').style.display = 'flex';
+    if (submitBtn) submitBtn.disabled = false;
+  };
+  img.src = srcDataUrl;
+}
+
 async function submitJoinForm(event) {
   event.preventDefault();
   const input = $('join-name');
   const feedback = $('join-feedback');
+  const submitBtn = $('join-submit-btn');
   const name = input.value.trim();
   if (!name) return;
+
+  if (!photoState.dataUrl) {
+    feedback.textContent = 'Por favor, adicione sua foto antes de enviar.';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Enviando…';
 
   try {
     await request('/api/join', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, photoData: photoState.dataUrl }),
     });
-    feedback.textContent = 'Nome enviado com sucesso. Aguarde a aprovação do admin.';
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '✓ Nome enviado! Aguarde a aprovação do admin.';
     input.value = '';
+    photoState.dataUrl = null;
+    const area = $('photo-upload-area');
+    if (area) area.classList.remove('has-photo');
+    const canvas = $('photo-canvas');
+    if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Entrar na lista';
     await loadPublicState();
     if (state.isAdmin) await loadAdminState();
-  } catch (error) {
-    feedback.textContent = error.message;
+  } catch (err) {
+    feedback.style.color = 'var(--yellow)';
+    feedback.textContent = err.message;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Entrar na lista';
   }
 }
 
@@ -462,6 +568,7 @@ function attachEvents() {
 
 async function bootstrap() {
   attachEvents();
+  initPhotoUpload();
   await loadPublicState();
   try {
     await loadAdminState();

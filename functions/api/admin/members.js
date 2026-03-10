@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
     const status = body.status === 'confirmed' ? 'confirmed' : 'pending';
     if (!name || name.length < 2) return error('Digite um nome válido.');
     if (await memberExists(context.env, name)) return error('Esse nome já existe.');
-    await addMember(context.env, name, status);
+    await addMember(context.env, name, status, body.photoData || null);
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
     if (err.message === '401') return error('Sessão expirada.', 401);

@@ -137,7 +137,22 @@
                 <input id="join-name" type="text" placeholder="Digite seu nome" maxlength="60" required />
               </label>
 
-              <button type="submit" class="btn btn-primary btn-large">
+              <label class="field">
+                <span>Sua foto <span class="required-badge">obrigatório</span></span>
+                <div class="photo-upload-area" id="photo-upload-area">
+                  <div class="photo-preview-wrap" id="photo-preview-wrap">
+                    <canvas id="photo-canvas" width="120" height="120"></canvas>
+                  </div>
+                  <div class="photo-upload-instructions">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Toque para escolher uma foto</span>
+                    <small>Sua face será cortada automaticamente</small>
+                  </div>
+                  <input id="photo-input" type="file" accept="image/*" capture="user" style="display:none" />
+                </div>
+              </label>
+
+              <button type="submit" class="btn btn-primary btn-large" id="join-submit-btn" disabled>
                 Entrar na lista
               </button>
             </form>
@@ -161,6 +176,10 @@
           <template id="confirmed-item-template">
             <div class="confirmed-item">
               <span class="confirmed-index">1</span>
+              <div class="confirmed-avatar-wrap">
+                <img class="confirmed-avatar" src="" alt="" />
+                <div class="confirmed-avatar-fallback">?</div>
+              </div>
               <span class="confirmed-name">Nome</span>
             </div>
           </template>
