@@ -1873,17 +1873,6 @@ async function saveGameResults() {
 }
 
 function attachEvents() {
-  $('register-form').addEventListener('submit', submitRegisterForm);
-  $('join-login-form').addEventListener('submit', submitJoinLogin);
-  $('join-form').addEventListener('submit', submitJoinForm);
-  $('join-change-user-btn').addEventListener('click', () => {
-    joinState.playerId = null;
-    $('join-step-proof').classList.add('hidden');
-    $('join-step-login').classList.remove('hidden');
-    $('join-login-feedback').textContent = '';
-    $('join-login-btn').disabled = false;
-    $('join-login-btn').textContent = 'Entrar';
-  });
   $('open-admin-btn').addEventListener('click', openAdmin);
   document.querySelectorAll('[data-close-modal]').forEach((node) => node.addEventListener('click', closeAdmin));
   $('admin-login-form').addEventListener('submit', loginAdmin);
@@ -1973,7 +1962,6 @@ async function bootstrap() {
     showLoadError('Erro de inicialização (attachEvents): ' + e.message);
     return;
   }
-  try { initPhotoUpload(); } catch (e) { console.error('[bootstrap] initPhotoUpload:', e); }
   try { initPlayerPhotoUpload(); } catch (e) { console.error('[bootstrap] initPlayerPhotoUpload:', e); }
 
   // Triple-click on logo opens admin (hidden entry point)
