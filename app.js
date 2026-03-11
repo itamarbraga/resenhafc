@@ -1539,10 +1539,12 @@ async function confirmResetPassword() {
   }
 }
 
+// Store selected player in JS variable — never trust sel.value at submit time on iOS
+const addMemberSelection = { playerId: null, name: '' };
+
 function populateAddMemberDropdown(players) {
   const sel = $('add-member-select');
   if (!sel) return;
-  const prev = sel.value;
   sel.innerHTML = '<option value="">Escolha um jogador cadastrado…</option>';
   players
     .slice()
@@ -1550,39 +1552,56 @@ function populateAddMemberDropdown(players) {
     .forEach(p => {
       const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
       const opt = document.createElement('option');
-      opt.value = String(p.id);        // just the numeric id — simple and safe
+      opt.dataset.pid = String(p.id);
+      opt.dataset.name = name;
+      opt.value = String(p.id);
       opt.textContent = name;
-      if (opt.value === prev) opt.selected = true;
       sel.appendChild(opt);
     });
+
+  // Store selection on change — reliable on all browsers including iOS Safari
+  sel.addEventListener('change', () => {
+    const idx = sel.selectedIndex;
+    if (idx > 0 && sel.options[idx]) {
+      addMemberSelection.playerId = Number(sel.options[idx].dataset.pid);
+      addMemberSelection.name     = sel.options[idx].dataset.name || sel.options[idx].textContent.trim();
+    } else {
+      addMemberSelection.playerId = null;
+      addMemberSelection.name     = '';
+    }
+  });
 }
 
 async function addConfirmedMember(event) {
   event.preventDefault();
-  const sel   = $('add-member-select');
   const input = $('add-member-name');
 
-  let name, playerId = null;
-  if (sel && sel.value) {
-    // value is the numeric player id; text is the display name
-    playerId = Number(sel.value);
-    const selectedOpt = sel.options[sel.selectedIndex];
-    name = selectedOpt ? selectedOpt.textContent.trim() : '';
-  } else {
-    name = input ? input.value.trim() : '';
+  // Prefer JS variable (set on change) over reading DOM at submit time
+  let name     = addMemberSelection.name     || (input ? input.value.trim() : '');
+  let playerId = addMemberSelection.playerId || null;
+
+  // If user typed manually (no dropdown selection), clear playerId
+  if (input && input.value.trim() && !addMemberSelection.name) {
+    name     = input.value.trim();
+    playerId = null;
   }
 
   if (!name) {
     alert('Selecione um jogador ou digite um nome.');
     return;
   }
+
   try {
     await request('/api/admin/members', {
       method: 'POST',
       body: JSON.stringify({ name, playerId, status: 'confirmed' }),
     });
-    if (sel)   sel.value   = '';
+    // Reset
+    const sel = $('add-member-select');
+    if (sel) sel.selectedIndex = 0;
     if (input) input.value = '';
+    addMemberSelection.playerId = null;
+    addMemberSelection.name     = '';
     await Promise.all([loadPublicState(), loadAdminState()]);
   } catch (error) {
     alert(error.message);
