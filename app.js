@@ -1884,9 +1884,6 @@ function attachEvents() {
     $('join-login-btn').disabled = false;
     $('join-login-btn').textContent = 'Entrar';
   });
-  $('scroll-signup-btn').addEventListener('click', () => {
-    $('signup-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
   $('open-admin-btn').addEventListener('click', openAdmin);
   document.querySelectorAll('[data-close-modal]').forEach((node) => node.addEventListener('click', closeAdmin));
   $('admin-login-form').addEventListener('submit', loginAdmin);

@@ -1999,8 +1999,8 @@ body,
 /* ── Club logo size on phones ─────────────────────────────────────────── */
 @media (max-width: 560px) {
   .club-logo {
-    width: 64px !important;
-    height: 64px !important;
+    width: 90px !important;
+    height: auto !important;
   }
   .site-title {
     font-size: 1.3rem !important;
