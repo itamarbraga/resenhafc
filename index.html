@@ -586,16 +586,18 @@
         <section class="admin-section">
           <h3>Adicionar jogador confirmado</h3>
 
-          <form id="add-member-form" class="inline-form">
-            <div class="member-select-wrap">
-              <select id="add-member-select" required>
-                <option value="">Escolha um jogador cadastrado…</option>
-              </select>
-              <input id="add-member-name" type="text" placeholder="Ou digite o nome manualmente" maxlength="60"
-                     style="margin-top:8px" />
-            </div>
-            <button type="submit" class="btn btn-primary">Adicionar</button>
-          </form>
+          <!-- Player picker — buttons instead of select (iOS Safari select is unreliable) -->
+          <div id="player-picker-list" class="player-picker-list"></div>
+          <div id="player-picker-selected" class="player-picker-selected" style="display:none">
+            <span id="player-picker-selected-name"></span>
+            <button type="button" id="player-picker-clear-btn" class="btn btn-secondary btn-sm">✕ Trocar</button>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+            <input id="add-member-name" type="text" placeholder="Ou digite nome manualmente…" maxlength="60"
+                   style="flex:1;min-width:160px;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px" />
+            <button type="button" id="add-member-btn" class="btn btn-primary">Adicionar</button>
+          </div>
         </section>
 
         <section class="admin-section">

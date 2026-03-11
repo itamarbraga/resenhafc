@@ -1559,52 +1559,75 @@ async function confirmResetPassword() {
   }
 }
 
-// Store selected player in JS variable — never trust sel.value at submit time on iOS
+// ── Player picker (replaces <select> — iOS Safari unreliable with selects in modals) ──
 const addMemberSelection = { playerId: null, name: '' };
 
 function populateAddMemberDropdown(players) {
-  const sel = $('add-member-select');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Escolha um jogador cadastrado…</option>';
-  players
+  const list = $('player-picker-list');
+  if (!list) return;
+
+  const sorted = players
     .slice()
-    .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'pt'))
-    .forEach(p => {
-      const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
-      const opt = document.createElement('option');
-      opt.dataset.pid = String(p.id);
-      opt.dataset.name = name;
-      opt.value = String(p.id);
-      opt.textContent = name;
-      sel.appendChild(opt);
+    .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'pt'));
+
+  list.innerHTML = '';
+  sorted.forEach(p => {
+    const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'player-pick-btn';
+    btn.dataset.pid = String(p.id);
+    btn.dataset.name = name;
+
+    if (p.photoData) {
+      btn.innerHTML = `<img src="${p.photoData}" class="player-pick-avatar" alt="${escapeHtml(name)}" /><span>${escapeHtml(name)}</span>`;
+    } else {
+      btn.innerHTML = `<div class="player-pick-avatar player-pick-avatar-fallback">${escapeHtml(name.charAt(0))}</div><span>${escapeHtml(name)}</span>`;
+    }
+
+    btn.addEventListener('click', () => {
+      // Store in JS variable immediately on tap
+      addMemberSelection.playerId = Number(btn.dataset.pid);
+      addMemberSelection.name     = btn.dataset.name;
+
+      // Show selected state
+      list.style.display = 'none';
+      const sel = $('player-picker-selected');
+      const selName = $('player-picker-selected-name');
+      if (sel) sel.style.display = '';
+      if (selName) selName.textContent = '✓ ' + name;
+
+      // Clear manual input
+      const input = $('add-member-name');
+      if (input) input.value = '';
     });
 
-  // Store selection on change — reliable on all browsers including iOS Safari
-  sel.addEventListener('change', () => {
-    const idx = sel.selectedIndex;
-    if (idx > 0 && sel.options[idx]) {
-      addMemberSelection.playerId = Number(sel.options[idx].dataset.pid);
-      addMemberSelection.name     = sel.options[idx].dataset.name || sel.options[idx].textContent.trim();
-    } else {
+    list.appendChild(btn);
+  });
+
+  // Clear/swap button
+  const clearBtn = $('player-picker-clear-btn');
+  if (clearBtn) {
+    // Remove old listeners by cloning
+    const newClear = clearBtn.cloneNode(true);
+    clearBtn.parentNode.replaceChild(newClear, clearBtn);
+    newClear.addEventListener('click', () => {
       addMemberSelection.playerId = null;
       addMemberSelection.name     = '';
-    }
-  });
+      list.style.display = '';
+      const sel = $('player-picker-selected');
+      if (sel) sel.style.display = 'none';
+    });
+  }
 }
 
-async function addConfirmedMember(event) {
-  event.preventDefault();
+async function addConfirmedMember() {
   const input = $('add-member-name');
+  const manualName = input ? input.value.trim() : '';
 
-  // Prefer JS variable (set on change) over reading DOM at submit time
-  let name     = addMemberSelection.name     || (input ? input.value.trim() : '');
-  let playerId = addMemberSelection.playerId || null;
-
-  // If user typed manually (no dropdown selection), clear playerId
-  if (input && input.value.trim() && !addMemberSelection.name) {
-    name     = input.value.trim();
-    playerId = null;
-  }
+  // Prefer picker selection; fallback to manual text
+  const name     = addMemberSelection.name || manualName;
+  const playerId = addMemberSelection.playerId || null;
 
   if (!name) {
     alert('Selecione um jogador ou digite um nome.');
@@ -1616,15 +1639,19 @@ async function addConfirmedMember(event) {
       method: 'POST',
       body: JSON.stringify({ name, playerId, status: 'confirmed' }),
     });
-    // Reset
-    const sel = $('add-member-select');
-    if (sel) sel.selectedIndex = 0;
-    if (input) input.value = '';
+
+    // Reset picker
     addMemberSelection.playerId = null;
     addMemberSelection.name     = '';
+    const list = $('player-picker-list');
+    const sel  = $('player-picker-selected');
+    if (list) list.style.display = '';
+    if (sel)  sel.style.display = 'none';
+    if (input) input.value = '';
+
     await Promise.all([loadPublicState(), loadAdminState()]);
-  } catch (error) {
-    alert(error.message);
+  } catch (err) {
+    alert(err.message);
   }
 }
 
@@ -1864,7 +1891,8 @@ function attachEvents() {
   document.querySelectorAll('[data-close-modal]').forEach((node) => node.addEventListener('click', closeAdmin));
   $('admin-login-form').addEventListener('submit', loginAdmin);
   $('config-form').addEventListener('submit', saveConfig);
-  $('add-member-form').addEventListener('submit', addConfirmedMember);
+  const addMemberBtn = $('add-member-btn');
+  if (addMemberBtn) addMemberBtn.addEventListener('click', addConfirmedMember);
   $('pending-players-list').addEventListener('click', handlePlayerListClick);
   // All players table — reset password
   const allPlayersTable = $('all-players-table');
