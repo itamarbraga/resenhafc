@@ -685,53 +685,56 @@ function initPhotoUpload() {
       const instructions = area.querySelector('.photo-upload-instructions span');
       if (instructions) instructions.textContent = 'Processando…';
 
-      // Use createObjectURL — more reliable than FileReader on iOS Safari
-      const url = URL.createObjectURL(file);
-      const img = new Image();
+      // FileReader gives a data: URL — most reliable on iOS Safari
+      const reader = new FileReader();
 
-      img.onload = () => {
-        const size = 120;
-        const ctx  = canvas.getContext('2d');
-        canvas.width  = size;
-        canvas.height = size;
+      reader.onload = (e) => {
+        const img = new Image();
 
-        const minDim   = Math.min(img.width, img.height);
-        const sx       = (img.width  - minDim) / 2;
-        const sy       = Math.max(0, (img.height - minDim) * 0.25);
+        img.onload = () => {
+          const size = 120;
+          const ctx  = canvas.getContext('2d');
+          canvas.width  = size;
+          canvas.height = size;
 
-        // Draw circular crop — NO ctx.filter (unsupported in Safari iOS < 18)
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-        ctx.restore();
+          const minDim = Math.min(img.width, img.height);
+          const sx     = (img.width  - minDim) / 2;
+          const sy     = Math.max(0, (img.height - minDim) * 0.25);
 
-        URL.revokeObjectURL(url);
-        input.value = '';
+          // Circular crop — NO ctx.filter (unsupported in Safari iOS < 18)
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          ctx.restore();
 
-        // Store as PNG first, fallback chain for iOS
-        let dataUrl;
-        try {
-          dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        } catch (e) {
-          dataUrl = canvas.toDataURL('image/png');
-        }
-        photoState.dataUrl = dataUrl;
+          input.value = '';
 
-        // Show preview using CSS class only — never set inline style
-        area.classList.add('has-photo');
-        if (regBtn) regBtn.disabled = false;
-        if (instructions) instructions.textContent = 'Toque para trocar a foto';
+          let dataUrl;
+          try { dataUrl = canvas.toDataURL('image/jpeg', 0.82); }
+          catch (_) { dataUrl = canvas.toDataURL('image/png'); }
+
+          photoState.dataUrl = dataUrl;
+          area.classList.add('has-photo');
+          if (regBtn) regBtn.disabled = false;
+          if (instructions) instructions.textContent = 'Toque para trocar a foto';
+        };
+
+        img.onerror = () => {
+          input.value = '';
+          if (instructions) instructions.textContent = 'Erro ao carregar foto. Tente outra.';
+        };
+
+        img.src = e.target.result;
       };
 
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
+      reader.onerror = () => {
         input.value = '';
-        if (instructions) instructions.textContent = 'Erro ao carregar foto. Tente outra.';
+        if (instructions) instructions.textContent = 'Erro ao ler arquivo. Tente outra foto.';
       };
 
-      img.src = url;
+      reader.readAsDataURL(file);
     });
   }
 
@@ -749,35 +752,40 @@ function initPhotoUpload() {
       const file = proofInput.files && proofInput.files[0];
       if (!file) return;
 
-      const url = URL.createObjectURL(file);
-      const img = new Image();
+      const reader = new FileReader();
 
-      img.onload = () => {
-        // Compress via canvas — max 800px
-        const maxDim = 800;
-        const scale  = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w      = Math.round(img.width  * scale);
-        const h      = Math.round(img.height * scale);
-        const c      = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
+      reader.onload = (e) => {
+        const img = new Image();
 
-        URL.revokeObjectURL(url);
-        proofInput.value = '';
+        img.onload = () => {
+          // Compress via canvas — max 800px
+          const maxDim = 800;
+          const scale  = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w      = Math.round(img.width  * scale);
+          const h      = Math.round(img.height * scale);
+          const c      = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
 
-        let dataUrl;
-        try { dataUrl = c.toDataURL('image/jpeg', 0.82); }
-        catch (e) { dataUrl = c.toDataURL('image/png'); }
+          proofInput.value = '';
 
-        proofState.dataUrl = dataUrl;
-        const previewImg = $('proof-preview-img');
-        if (previewImg) { previewImg.src = dataUrl; previewImg.style.display = 'block'; }
-        proofArea.classList.add('has-photo');
-        updateJoinSubmitState();
+          let dataUrl;
+          try { dataUrl = c.toDataURL('image/jpeg', 0.82); }
+          catch (_) { dataUrl = c.toDataURL('image/png'); }
+
+          proofState.dataUrl = dataUrl;
+          const previewImg = $('proof-preview-img');
+          if (previewImg) { previewImg.src = dataUrl; previewImg.style.display = 'block'; }
+          proofArea.classList.add('has-photo');
+          updateJoinSubmitState();
+        };
+
+        img.onerror = () => { proofInput.value = ''; };
+        img.src = e.target.result;
       };
 
-      img.onerror = () => { URL.revokeObjectURL(url); proofInput.value = ''; };
-      img.src = url;
+      reader.onerror = () => { proofInput.value = ''; };
+      reader.readAsDataURL(file);
     });
   }
 
