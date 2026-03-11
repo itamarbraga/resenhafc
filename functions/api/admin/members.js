@@ -17,18 +17,19 @@ export async function onRequestPost(context) {
     if (!name || name.length < 2) return error('Digite um nome válido.');
     if (await memberExists(context.env, name)) return error('Esse nome já existe.');
 
-    // If a player profile id was supplied, pull photo + player_id from it
-    let photoData = body.photoData || null;
-    let playerId  = body.playerId  || null;
-    if (playerId) {
-      const player = await getPlayer(context.env, Number(playerId));
-      if (player) {
-        photoData = player.photoData || photoData;
-        playerId  = player.id;
-      }
+    let playerId = null;
+
+    if (body.playerId) {
+      // Verify player exists — photo comes automatically via JOIN in listMembers
+      const player = await getPlayer(context.env, Number(body.playerId));
+      if (player) playerId = player.id;
     }
 
-    await addMember(context.env, name, status, photoData, playerId);
+    // Never store photo in members.photo_data when player_id is known —
+    // the JOIN `COALESCE(p.photo_data, m.photo_data)` in listMembers handles it.
+    // Storing a large base64 blob twice wastes space and can cause silent failures.
+    await addMember(context.env, name, status, null, playerId);
+
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
     if (err.message === '401') return error('Sessão expirada.', 401);
