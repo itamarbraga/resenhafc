@@ -16,8 +16,10 @@ export async function onRequestPost(context) {
     if (player.status !== 'approved') return error('Seu cadastro ainda não foi aprovado pelo admin.');
 
     if (!body.paymentProof) return error('O comprovante de pagamento é obrigatório.');
-    if (!body.paymentProof.startsWith('data:image/')) return error('Formato de comprovante inválido.');
-    if (body.paymentProof.length > MAX_PROOF_BYTES * 1.37) return error('Comprovante muito grande. Máximo 300 KB.');
+    const validProof = body.paymentProof.startsWith('data:image/') || body.paymentProof.startsWith('data:application/pdf');
+    if (!validProof) return error('Formato inválido. Use imagem ou PDF.');
+    const maxBytes = body.paymentProof.startsWith('data:application/pdf') ? 5 * 1024 * 1024 * 1.37 : MAX_PROOF_BYTES * 1.37;
+    if (body.paymentProof.length > maxBytes) return error('Arquivo muito grande. Máximo 5 MB para PDF, 300 KB para imagem.');
 
     if (await memberExists(context.env, player.fullName)) {
       return error('Você já está na lista ou aguardando aprovação.');

@@ -244,17 +244,17 @@
               <form id="join-form" novalidate class="join-form" style="margin-top:16px">
                 <label class="field">
                   <span>Comprovante de pagamento <span class="required-badge">obrigatório</span></span>
-                  <div class="photo-upload-area" id="proof-upload-area">
+                  <label class="photo-upload-area" id="proof-upload-area" for="proof-input">
                     <div class="photo-preview-wrap" id="proof-preview-wrap">
                       <img id="proof-preview-img" src="" alt="Comprovante" style="display:none;max-width:180px;max-height:120px;border-radius:8px;" />
                     </div>
                     <div class="photo-upload-instructions" id="proof-instructions">
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                      <span>Toque para anexar comprovante</span>
-                      <small>Foto da transferência ou PIX</small>
+                      <span id="proof-upload-cta">Toque para anexar comprovante</span>
+                      <small>Foto, print ou PDF do pagamento</small>
                     </div>
-                    <input id="proof-input" type="file" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" />
-                  </div>
+                    <input id="proof-input" type="file" accept="image/*,application/pdf" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
+                  </label>
                 </label>
 
                 <button type="submit" class="btn btn-primary btn-large" id="join-submit-btn" disabled>

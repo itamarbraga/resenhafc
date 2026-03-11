@@ -984,24 +984,37 @@ function initPhotoUpload() {
   const proofArea  = $('proof-upload-area');
   const proofInput = $('proof-input');
 
+  // label[for="proof-input"] handles click natively — no JS click needed
   if (proofArea && proofInput) {
-    proofArea.addEventListener('click', (e) => {
-      if (e.target === proofInput) return;
-      proofInput.click();
-    });
-
-    proofInput.addEventListener('change', () => {
-      const file = proofInput.files && proofInput.files[0];
+    proofInput.addEventListener('change', function () {
+      const file = this.files && this.files[0];
       if (!file) return;
+
+      const cta = $('proof-upload-cta');
+      if (cta) cta.textContent = 'Processando…';
 
       const reader = new FileReader();
 
-      reader.onload = (e) => {
-        const img = new Image();
+      reader.onload = function (e) {
+        const dataUrl = e.target.result;
 
-        img.onload = () => {
-          // Compress via canvas — max 800px
-          const maxDim = 800;
+        // PDF — store directly, show icon instead of image preview
+        if (file.type === 'application/pdf' || dataUrl.startsWith('data:application/pdf')) {
+          proofInput.value = '';
+          proofState.dataUrl = dataUrl;
+          const previewImg = $('proof-preview-img');
+          if (previewImg) { previewImg.style.display = 'none'; }
+          const instrEl = $('proof-instructions');
+          if (instrEl) instrEl.innerHTML = '<span style="font-size:2.5rem">📄</span><span>PDF anexado ✓</span>';
+          proofArea.classList.add('has-photo');
+          updateJoinSubmitState();
+          return;
+        }
+
+        // Image — compress via canvas
+        const img = new Image();
+        img.onload = function () {
+          const maxDim = 1200;
           const scale  = Math.min(1, maxDim / Math.max(img.width, img.height));
           const w      = Math.round(img.width  * scale);
           const h      = Math.round(img.height * scale);
@@ -1011,22 +1024,29 @@ function initPhotoUpload() {
 
           proofInput.value = '';
 
-          let dataUrl;
-          try { dataUrl = c.toDataURL('image/jpeg', 0.82); }
-          catch (_) { dataUrl = c.toDataURL('image/png'); }
+          let compressed;
+          try { compressed = c.toDataURL('image/jpeg', 0.85); }
+          catch (_) { compressed = c.toDataURL('image/png'); }
 
-          proofState.dataUrl = dataUrl;
+          proofState.dataUrl = compressed;
           const previewImg = $('proof-preview-img');
-          if (previewImg) { previewImg.src = dataUrl; previewImg.style.display = 'block'; }
+          if (previewImg) { previewImg.src = compressed; previewImg.style.display = 'block'; }
+          if (cta) cta.textContent = 'Toque para trocar';
           proofArea.classList.add('has-photo');
           updateJoinSubmitState();
         };
-
-        img.onerror = () => { proofInput.value = ''; };
-        img.src = e.target.result;
+        img.onerror = function () {
+          proofInput.value = '';
+          if (cta) cta.textContent = 'Erro — tente outra imagem';
+        };
+        img.src = dataUrl;
       };
 
-      reader.onerror = () => { proofInput.value = ''; };
+      reader.onerror = function () {
+        proofInput.value = '';
+        if (cta) cta.textContent = 'Erro ao ler arquivo';
+      };
+
       reader.readAsDataURL(file);
     });
   }
