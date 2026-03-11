@@ -1061,14 +1061,22 @@ input:focus {
     padding: 14px 8px;
   }
 
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px 0 20px;
+  }
+
   .header-actions {
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: flex-start;
   }
 
   .header-actions .btn {
     flex: 1 1 auto;
-    min-width: 0;
+    min-width: 130px;
     font-size: 0.82rem;
     padding: 10px 12px;
     min-height: 42px;
@@ -1897,19 +1905,29 @@ body,
   }
 }
 
-/* 9. Header actions wrap on very small screens */
-@media (max-width: 400px) {
+/* 9. Header stacks on mobile */
+@media (max-width: 640px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px 0 20px;
+  }
+
   .header-actions {
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: flex-start;
   }
 
   .header-actions .btn {
     flex: 1 1 auto;
+    min-width: 130px;
     text-align: center;
     justify-content: center;
-    font-size: 0.8rem;
-    padding: 8px 10px;
+    font-size: 0.84rem;
+    padding: 10px 12px;
+    min-height: 42px;
   }
 }
 

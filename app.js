@@ -678,13 +678,6 @@ function initPhotoUpload() {
   const regBtn = $('register-submit-btn');
 
   if (area && input) {
-    // Use label-style click: stop propagation so input inside area
-    // doesn't trigger area click again on iOS
-    area.addEventListener('click', (e) => {
-      if (e.target === input) return; // already handled
-      input.click();
-    });
-
     input.addEventListener('change', () => {
       const file = input.files && input.files[0];
       if (!file) return;
