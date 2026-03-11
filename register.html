@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro — Brazukas FC Groningen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #27ae60;
+      --green-dark: #1e8449;
+      --yellow: #f1c40f;
+      --red: #e74c3c;
+      --bg: #0b1a10;
+      --card: #0f2016;
+      --border: rgba(255,255,255,0.1);
+      --text: #f0f0f0;
+      --muted: #8aab93;
+      --input-bg: rgba(255,255,255,0.06);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .page-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .page-header img {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+    }
+    .page-header-copy { min-width: 0; }
+    .page-header-copy h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .page-header-copy p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 24px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Fields */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .field > span {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+    .req {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: rgba(241,196,15,0.15);
+      color: var(--yellow);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 5px;
+      vertical-align: middle;
+      letter-spacing: 0.04em;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 400px) { .field-row { grid-template-columns: 1fr; } }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 16px; /* prevents iOS zoom */
+      font-family: inherit;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
+    }
+    input:focus, select:focus {
+      border-color: var(--green);
+    }
+    input.error, select.error {
+      border-color: var(--red) !important;
+    }
+    select option { background: #0f2016; }
+
+    /* Photo upload */
+    .photo-section {
+      margin-bottom: 16px;
+    }
+    .photo-section > span {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* The label IS the tap target — iOS native */
+    .photo-label {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--input-bg);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: border-color 0.2s;
+    }
+    .photo-label:active { border-color: var(--green); }
+    .photo-label.has-photo { border-style: solid; border-color: var(--green); }
+
+    /* Hidden file input — opacity trick for iOS */
+    #photo-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .photo-canvas-wrap {
+      flex-shrink: 0;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-canvas-wrap canvas {
+      width: 72px;
+      height: 72px;
+      display: block;
+      border-radius: 50%;
+    }
+    .photo-placeholder {
+      font-size: 2rem;
+      opacity: 0.4;
+    }
+
+    .photo-copy { min-width: 0; }
+    .photo-copy strong {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .photo-copy small {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    #photo-status {
+      font-size: 0.8rem;
+      color: var(--green);
+      margin-top: 2px;
+      display: none;
+    }
+
+    /* Submit */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--green);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 8px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-submit:not(:disabled):active { opacity: 0.8; }
+
+    /* Feedback */
+    #feedback {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      min-height: 24px;
+    }
+    #feedback.error { color: #fc8181; }
+    #feedback.success { color: #68d391; }
+
+    /* Success state */
+    .success-card {
+      text-align: center;
+      padding: 40px 24px;
+      display: none;
+    }
+    .success-card .icon { font-size: 3rem; margin-bottom: 16px; }
+    .success-card h2 { font-size: 1.3rem; margin-bottom: 8px; }
+    .success-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.6; }
+    .success-card a {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 28px;
+      border-radius: 999px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <a href="/" class="back-link">
+      ← Voltar ao site
+    </a>
+
+    <div class="page-header">
+      <img src="/assets/logo.svg" alt="Brazukas FC" />
+      <div class="page-header-copy">
+        <h1>Brazukas FC Groningen</h1>
+        <p>Cadastro de perfil de jogador</p>
+      </div>
+    </div>
+
+    <!-- Form card -->
+    <div class="card" id="form-card">
+      <p class="card-title">Criar perfil</p>
+      <p class="card-desc">Cadastre-se uma vez. Seu perfil fica salvo para todos os jogos futuros — sem precisar preencher tudo de novo.</p>
+
+      <form id="register-form" novalidate>
+
+        <div class="field-row">
+          <div class="field">
+            <span>Nome de usuário <span class="req">obrigatório</span></span>
+            <input id="reg-username" type="text" placeholder="ex: joaosilva" maxlength="30"
+                   autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" />
+            <span class="field-hint">Letras, números, _ ou . (mín. 3)</span>
+          </div>
+          <div class="field">
+            <span>Senha <span class="req">obrigatório</span></span>
+            <input id="reg-password" type="password" placeholder="Mínimo 6 caracteres" maxlength="72"
+                   autocomplete="new-password" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <span>Nome</span>
+            <input id="reg-first-name" type="text" placeholder="Primeiro nome" maxlength="40"
+                   autocapitalize="words" />
+          </div>
+          <div class="field">
+            <span>Sobrenome</span>
+            <input id="reg-last-name" type="text" placeholder="Sobrenome" maxlength="40"
+                   autocapitalize="words" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <span>Telefone / WhatsApp</span>
+            <input id="reg-phone" type="tel" placeholder="+55 11 99999-9999" maxlength="30" />
+          </div>
+          <div class="field">
+            <span>Estado <span class="req">obrigatório</span></span>
+            <select id="reg-state">
+              <option value="">Selecione...</option>
+              <option value="INTL">🌍 Internacional</option>
+              <option disabled>── Brasil ──</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+              <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+              <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+              <option>SP</option><option>SE</option><option>TO</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Photo — label wraps the input directly, no JS click needed -->
+        <div class="photo-section">
+          <span>Foto de perfil <span class="req">obrigatório</span></span>
+
+          <label class="photo-label" id="photo-label" for="photo-input">
+            <div class="photo-canvas-wrap" id="photo-canvas-wrap">
+              <span class="photo-placeholder" id="photo-placeholder">📷</span>
+              <canvas id="photo-canvas" width="120" height="120" style="display:none;border-radius:50%"></canvas>
+            </div>
+            <div class="photo-copy">
+              <strong id="photo-cta">Toque para escolher uma foto</strong>
+              <small>Sua face será recortada automaticamente</small>
+              <span id="photo-status">✓ Foto carregada</span>
+            </div>
+          </label>
+
+          <!-- opacity:0, zero size — label[for] triggers it natively no iOS -->
+          <input type="file" id="photo-input" accept="image/*" />
+        </div>
+
+        <button type="submit" class="btn-submit" id="submit-btn" disabled>
+          Cadastrar perfil
+        </button>
+
+        <div id="feedback"></div>
+      </form>
+    </div>
+
+    <!-- Success state -->
+    <div class="card success-card" id="success-card">
+      <div class="icon">✅</div>
+      <h2>Cadastro enviado!</h2>
+      <p>Seu perfil foi recebido e está aguardando aprovação do administrador.<br>Assim que aprovado você já pode entrar na lista de jogos.</p>
+      <a href="/">← Voltar ao site</a>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+
+    async function apiRequest(url, body) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12000);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: ctrl.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        clearTimeout(timer);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+        return data;
+      } catch (err) {
+        clearTimeout(timer);
+        if (err.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão.');
+        throw err;
+      }
+    }
+
+    function setFeedback(msg, type) {
+      const el = $('feedback');
+      el.textContent = msg;
+      el.className = type; // 'error' | 'success' | ''
+    }
+
+    function markError(id) {
+      const el = $(id);
+      if (el) el.classList.add('error');
+    }
+    function clearErrors() {
+      document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    }
+
+    // ── Photo upload ──────────────────────────────────────────────────────────
+    let photoDataUrl = null;
+
+    $('photo-input').addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+
+      $('photo-cta').textContent = 'Processando…';
+
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const img = new Image();
+
+        img.onload = function () {
+          const canvas = $('photo-canvas');
+          const size = 120;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // Square crop biased toward face (top quarter)
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = Math.max(0, (img.height - minDim) * 0.25);
+
+          // Circular clip
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          ctx.restore();
+
+          // Extract data URL
+          try {
+            photoDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          } catch (_) {
+            photoDataUrl = canvas.toDataURL('image/png');
+          }
+
+          // Show preview
+          $('photo-placeholder').style.display = 'none';
+          canvas.style.display = 'block';
+          $('photo-label').classList.add('has-photo');
+          $('photo-cta').textContent = 'Toque para trocar a foto';
+          $('photo-status').style.display = 'block';
+          $('submit-btn').disabled = false;
+
+          // Allow re-selecting same file
+          $('photo-input').value = '';
+        };
+
+        img.onerror = function () {
+          $('photo-cta').textContent = 'Erro ao carregar. Tente outra foto.';
+          $('photo-input').value = '';
+        };
+
+        img.src = e.target.result;
+      };
+
+      reader.onerror = function () {
+        $('photo-cta').textContent = 'Erro ao ler arquivo. Tente outra foto.';
+        $('photo-input').value = '';
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    // ── Form submit ───────────────────────────────────────────────────────────
+    $('register-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearErrors();
+      setFeedback('', '');
+
+      const btn = $('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+
+      const username  = $('reg-username').value.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      const password  = $('reg-password').value;
+      const firstName = $('reg-first-name').value.trim();
+      const lastName  = $('reg-last-name').value.trim();
+      const phone     = $('reg-phone').value.trim();
+      const state     = $('reg-state').value;
+
+      // Validate
+      if (!username || username.length < 3) {
+        markError('reg-username');
+        setFeedback('⚠️ Escolha um nome de usuário com pelo menos 3 caracteres.', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+      if (!password || password.length < 6) {
+        markError('reg-password');
+        setFeedback('⚠️ A senha deve ter pelo menos 6 caracteres.', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+      if (!firstName || firstName.length < 2) {
+        markError('reg-first-name');
+        setFeedback('⚠️ Digite seu nome.', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+      if (!lastName || lastName.length < 2) {
+        markError('reg-last-name');
+        setFeedback('⚠️ Digite seu sobrenome.', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+      if (!state) {
+        markError('reg-state');
+        setFeedback('⚠️ Selecione seu estado ou "Internacional".', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+      if (!photoDataUrl) {
+        $('photo-label').style.borderColor = 'var(--red)';
+        setFeedback('⚠️ Adicione sua foto de perfil — toque na área da câmera.', 'error');
+        btn.disabled = false; btn.textContent = 'Cadastrar perfil'; return;
+      }
+
+      try {
+        await apiRequest('/api/register', {
+          username, password, firstName, lastName, phone, state,
+          photoData: photoDataUrl,
+        });
+
+        // Show success
+        $('form-card').style.display = 'none';
+        $('success-card').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (err) {
+        setFeedback('⚠️ ' + (err.message || 'Erro desconhecido. Tente novamente.'), 'error');
+        btn.disabled = false;
+        btn.textContent = 'Cadastrar perfil';
+      }
+    });
+  </script>
+</body>
+</html>
