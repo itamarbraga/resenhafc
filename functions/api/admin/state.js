@@ -1,4 +1,4 @@
-import { buildPublicState, initializeDb, listGameDays, listMembers, listPlayers } from '../lib/db.js';
+import { buildPublicState, initializeDb, listGameDays, listMembersAdmin, listMembers, listPlayers } from '../lib/db.js';
 import { requireAdmin } from '../lib/auth.js';
 import { error, json } from '../lib/helpers.js';
 
@@ -10,10 +10,10 @@ export async function onRequestGet(context) {
 
     const [publicState, pendingMembers, gameDays, pendingPlayers, approvedPlayers] = await Promise.all([
       buildPublicState(context.env),
-      listMembers(context.env, 'pending'),
+      listMembersAdmin(context.env, 'pending'),  // with payment_proof — admin only
       listGameDays(context.env),
-      listPlayers(context.env, 'pending'),
-      listPlayers(context.env, 'approved'),
+      listPlayers(context.env, 'pending'),        // with photo_data — admin only
+      listPlayers(context.env, 'approved'),       // with photo_data — admin only
     ]);
 
     return json({

@@ -247,12 +247,14 @@ export async function saveConfig(env, partialConfig) {
 
 export async function listMembers(env, status = null) {
   let query = `
-    SELECT m.id, m.name, m.status, m.created_at, m.player_id, m.payment_proof,
+    SELECT m.id, m.name, m.status, m.created_at, m.player_id,
            COALESCE(p.photo_data, m.photo_data) AS photo_data,
            p.first_name, p.last_name, p.state, p.phone
     FROM members m
     LEFT JOIN players p ON m.player_id = p.id
   `;
+  /* payment_proof NOT selected here — can be up to 5MB PDF in base64 and
+     would blow up the public state response. Admin fetches it separately. */
   const binds = [];
 
   if (status) {
@@ -275,11 +277,36 @@ export async function listMembers(env, status = null) {
     createdAtLabel: prettyCreatedAt(row.created_at),
     photoData: row.photo_data || null,
     playerId: row.player_id || null,
-    paymentProof: row.payment_proof || null,
+    paymentProof: null,   // not loaded in public state — admin fetches separately
     firstName: row.first_name || null,
     lastName: row.last_name || null,
     state: row.state || null,
     phone: row.phone || null,
+  }));
+}
+
+// Admin-only version — includes payment_proof (can be large PDF)
+export async function listMembersAdmin(env, status = null) {
+  let query = `
+    SELECT m.id, m.name, m.status, m.created_at, m.player_id, m.payment_proof,
+           COALESCE(p.photo_data, m.photo_data) AS photo_data,
+           p.first_name, p.last_name, p.state, p.phone
+    FROM members m
+    LEFT JOIN players p ON m.player_id = p.id
+  `;
+  const binds = [];
+  if (status) { query += ' WHERE m.status = ?1'; binds.push(status); }
+  query += ' ORDER BY m.created_at ASC, m.id ASC';
+  const statement = env.DB.prepare(query);
+  const result = binds.length ? await statement.bind(...binds).all() : await statement.all();
+  return (result.results || []).map((row) => ({
+    id: row.id, name: row.name, status: row.status,
+    createdAt: row.created_at, createdAtLabel: prettyCreatedAt(row.created_at),
+    photoData: row.photo_data || null,
+    playerId: row.player_id || null,
+    paymentProof: row.payment_proof || null,
+    firstName: row.first_name || null, lastName: row.last_name || null,
+    state: row.state || null, phone: row.phone || null,
   }));
 }
 
@@ -534,6 +561,29 @@ export async function playerExists(env, firstName, lastName) {
   return Boolean(row?.id);
 }
 
+async function listPlayersNoPhoto(env, status) {
+  // Like listPlayers but omits photo_data — used in public state to keep response small
+  let query = 'SELECT id, first_name, last_name, username, phone, state, status, created_at FROM players';
+  const binds = [];
+  if (status) { query += ' WHERE status = ?1'; binds.push(status); }
+  query += ' ORDER BY first_name ASC, last_name ASC';
+  const stmt = env.DB.prepare(query);
+  const result = binds.length ? await stmt.bind(...binds).all() : await stmt.all();
+  return (result.results || []).map((r) => ({
+    id: r.id,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    fullName: `${r.first_name} ${r.last_name}`,
+    username: r.username || '',
+    phone: r.phone || '',
+    state: r.state,
+    photoData: null,   // omitted in public state — fetched by admin separately
+    status: r.status,
+    createdAt: r.created_at,
+    createdAtLabel: prettyCreatedAt(r.created_at),
+  }));
+}
+
 export async function buildPublicState(env) {
   const [config, members, sponsors, teamsData, stats, approvedPlayers] = await Promise.all([
     getConfig(env),
@@ -541,7 +591,7 @@ export async function buildPublicState(env) {
     listSponsors(env),
     listTeams(env),
     buildStats(env),
-    listPlayers(env, 'approved'),
+    listPlayersNoPhoto(env, 'approved'),   // no photo_data — avoids large response
   ]);
 
   return {
