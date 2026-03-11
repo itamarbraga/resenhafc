@@ -1304,9 +1304,9 @@ function populateAddMemberDropdown(players) {
   sel.innerHTML = '<option value="">Escolha um jogador cadastrado…</option>';
   players
     .slice()
-    .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, 'pt'))
+    .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'pt'))
     .forEach(p => {
-      const name = `${p.first_name} ${p.last_name}`.trim();
+      const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;
