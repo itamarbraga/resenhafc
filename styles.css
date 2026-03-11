@@ -817,6 +817,19 @@ input:focus {
   flex-wrap: wrap;
 }
 
+.member-select-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.member-select-wrap select,
+.member-select-wrap input {
+  width: 100%;
+}
+
+
 .inline-form input {
   flex: 1 1 260px;
 }

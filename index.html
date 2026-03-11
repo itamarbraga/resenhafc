@@ -506,7 +506,13 @@
           <h3>Adicionar jogador confirmado</h3>
 
           <form id="add-member-form" class="inline-form">
-            <input id="add-member-name" type="text" placeholder="Nome do jogador" maxlength="60" required />
+            <div class="member-select-wrap">
+              <select id="add-member-select" required>
+                <option value="">Escolha um jogador cadastrado…</option>
+              </select>
+              <input id="add-member-name" type="text" placeholder="Ou digite o nome manualmente" maxlength="60"
+                     style="margin-top:8px" />
+            </div>
             <button type="submit" class="btn btn-primary">Adicionar</button>
           </form>
         </section>

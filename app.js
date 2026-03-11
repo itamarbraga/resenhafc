@@ -1058,6 +1058,7 @@ function renderAdmin() {
 
   renderPendingPlayers(data.pendingPlayers || []);
   renderApprovedPlayers(data.approvedPlayers || []);
+  populateAddMemberDropdown(data.approvedPlayers || []);
   renderPendingAdmin(data.pendingMembers || []);
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
@@ -1216,17 +1217,41 @@ async function saveConfig(event) {
   }
 }
 
+function populateAddMemberDropdown(players) {
+  const sel = $('add-member-select');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Escolha um jogador cadastrado…</option>';
+  players
+    .slice()
+    .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, 'pt'))
+    .forEach(p => {
+      const name = `${p.first_name} ${p.last_name}`.trim();
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === prev) opt.selected = true;
+      sel.appendChild(opt);
+    });
+}
+
 async function addConfirmedMember(event) {
   event.preventDefault();
+  const sel   = $('add-member-select');
   const input = $('add-member-name');
-  const name = input.value.trim();
-  if (!name) return;
+  // Prefer dropdown; fallback to manual text input
+  const name = (sel && sel.value) ? sel.value : (input ? input.value.trim() : '');
+  if (!name) {
+    alert('Selecione um jogador ou digite um nome.');
+    return;
+  }
   try {
     await request('/api/admin/members', {
       method: 'POST',
       body: JSON.stringify({ name, status: 'confirmed' }),
     });
-    input.value = '';
+    if (sel)   sel.value   = '';
+    if (input) input.value = '';
     await Promise.all([loadPublicState(), loadAdminState()]);
   } catch (error) {
     alert(error.message);
