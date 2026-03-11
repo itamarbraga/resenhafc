@@ -1059,6 +1059,7 @@ function renderAdmin() {
   renderPendingPlayers(data.pendingPlayers || []);
   renderApprovedPlayers(data.approvedPlayers || []);
   populateAddMemberDropdown(data.approvedPlayers || []);
+  renderAllPlayersTable([...(data.pendingPlayers || []), ...(data.approvedPlayers || [])]);
   renderPendingAdmin(data.pendingMembers || []);
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
@@ -1214,6 +1215,85 @@ async function saveConfig(event) {
     await loadAdminState();
   } catch (error) {
     feedback.textContent = error.message;
+  }
+}
+
+function renderAllPlayersTable(players) {
+  const container = $('all-players-table');
+  if (!container) return;
+  if (!players.length) {
+    container.innerHTML = '<div class="empty-state">Nenhum membro cadastrado.</div>';
+    return;
+  }
+  const sorted = players.slice().sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt'));
+  container.innerHTML = sorted.map(p => `
+    <div class="admin-item admin-item-members" data-player-id="${p.id}">
+      <div class="admin-item-profile">
+        ${p.photoData
+          ? `<img class="admin-player-avatar" src="${p.photoData}" alt="${escapeHtml(p.fullName)}" />`
+          : `<div class="admin-player-avatar admin-player-avatar-fallback">${p.firstName.charAt(0)}</div>`}
+        <div class="admin-member-info">
+          <div class="name">${escapeHtml(p.fullName)}</div>
+          <div class="meta admin-member-meta">
+            <span class="admin-meta-chip">👤 ${escapeHtml(p.username || '—')}</span>
+            <span class="admin-meta-chip">📍 ${escapeHtml(p.state || '—')}</span>
+            <span class="admin-meta-chip">📱 ${escapeHtml(p.phone || '—')}</span>
+            <span class="admin-meta-chip">📅 ${escapeHtml(p.createdAtLabel || '—')}</span>
+            <span class="admin-meta-chip status-chip status-${p.status}">${p.status === 'approved' ? '✅ aprovado' : p.status === 'pending' ? '⏳ pendente' : '❌ ' + p.status}</span>
+          </div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-secondary btn-sm" data-reset-pw-id="${p.id}" data-reset-pw-name="${escapeHtml(p.fullName)}">🔑 Resetar senha</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Reset password flow ─────────────────────────────────────────────────────
+let resetPwTargetId = null;
+
+function openResetPwPanel(id, name) {
+  resetPwTargetId = id;
+  $('reset-pw-name').textContent = name;
+  $('reset-pw-input').value = '';
+  $('reset-pw-feedback').textContent = '';
+  $('reset-pw-panel').style.display = 'block';
+  $('reset-pw-input').focus();
+  $('reset-pw-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeResetPwPanel() {
+  resetPwTargetId = null;
+  $('reset-pw-panel').style.display = 'none';
+}
+
+async function confirmResetPassword() {
+  const newPassword = $('reset-pw-input').value.trim();
+  const fb = $('reset-pw-feedback');
+  if (!newPassword || newPassword.length < 6) {
+    fb.style.color = 'var(--yellow)';
+    fb.textContent = '⚠️ A senha deve ter pelo menos 6 caracteres.';
+    return;
+  }
+  const btn = $('reset-pw-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+  fb.textContent = '';
+  try {
+    await request('/api/admin/players', {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'reset-password', id: resetPwTargetId, newPassword }),
+    });
+    fb.style.color = 'var(--green)';
+    fb.textContent = '✓ Senha resetada com sucesso.';
+    setTimeout(closeResetPwPanel, 1800);
+  } catch (err) {
+    fb.style.color = 'var(--yellow)';
+    fb.textContent = '⚠️ ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
   }
 }
 
@@ -1496,6 +1576,19 @@ function attachEvents() {
   $('config-form').addEventListener('submit', saveConfig);
   $('add-member-form').addEventListener('submit', addConfirmedMember);
   $('pending-players-list').addEventListener('click', handlePlayerListClick);
+  // All players table — reset password
+  const allPlayersTable = $('all-players-table');
+  if (allPlayersTable) {
+    allPlayersTable.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-reset-pw-id]');
+      if (!btn) return;
+      openResetPwPanel(Number(btn.dataset.resetPwId), btn.dataset.resetPwName);
+    });
+  }
+  const resetConfirm = $('reset-pw-confirm-btn');
+  if (resetConfirm) resetConfirm.addEventListener('click', confirmResetPassword);
+  const resetCancel = $('reset-pw-cancel-btn');
+  if (resetCancel) resetCancel.addEventListener('click', closeResetPwPanel);
   $('approved-players-list').addEventListener('click', handlePlayerListClick);
   $('pending-list').addEventListener('click', handleAdminListClick);
   $('admin-members-list').addEventListener('click', handleAdminListClick);

@@ -497,6 +497,27 @@
         </section>
 
         <section class="admin-section">
+          <h3>📋 Dados de todos os membros</h3>
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">Todos os perfis cadastrados — aprovados e pendentes. Clique em "Resetar senha" para definir uma nova senha temporária.</p>
+          <div id="all-players-table" class="admin-list"></div>
+        </section>
+
+        <!-- Reset password inline panel -->
+        <div id="reset-pw-panel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:8px">
+          <p style="font-weight:700;margin-bottom:12px">🔑 Resetar senha — <span id="reset-pw-name"></span></p>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <label style="flex:1;min-width:180px">
+              <span style="font-size:0.82rem;color:var(--muted);display:block;margin-bottom:4px">Nova senha</span>
+              <input id="reset-pw-input" type="text" placeholder="Nova senha (mín. 6 chars)" maxlength="72"
+                     style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px" />
+            </label>
+            <button id="reset-pw-confirm-btn" class="btn btn-primary btn-sm" type="button">Confirmar</button>
+            <button id="reset-pw-cancel-btn" class="btn btn-secondary btn-sm" type="button">Cancelar</button>
+          </div>
+          <p id="reset-pw-feedback" style="margin-top:10px;font-size:0.85rem;min-height:20px"></p>
+        </div>
+
+        <section class="admin-section">
           <h3>📋 Pedidos para entrar na lista</h3>
           <p class="admin-hint">Verifique o comprovante antes de aprovar.</p>
           <div id="pending-list" class="admin-list"></div>
