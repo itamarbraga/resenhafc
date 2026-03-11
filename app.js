@@ -156,6 +156,7 @@ async function loadPlayerSession() {
   try {
     const { player } = await request('/api/player/me');
     playerState.data = player;
+    galleryState.currentPlayerId = player.id;
     showPlayerProfile(player);
     updateLoginButton(player);
   } catch {
@@ -663,6 +664,247 @@ function startCountdown(gameDate, startTime) {
 
   tick();
   state.countdownTimer = setInterval(tick, 30000);
+}
+
+
+// ─── Gallery ─────────────────────────────────────────────────────────────────
+
+const galleryState = {
+  type: 'photo',       // 'photo' | 'video'
+  photoDataUrl: null,
+  currentPlayerId: null,
+};
+
+async function loadGallery() {
+  const section = $('gallery-section');
+  const grid    = $('gallery-grid');
+  const empty   = $('gallery-empty');
+  const hint    = $('gallery-login-hint');
+  if (!section) return;
+
+  try {
+    const data = await request('/api/gallery');
+    section.style.display = '';
+    if (hint) hint.style.display = 'none';
+    renderGalleryGrid(data.items || []);
+  } catch (err) {
+    if (err.message && err.message.includes('401')) {
+      // Not logged in — show hint, hide section content
+      if (grid) grid.innerHTML = '';
+      if (empty) empty.style.display = 'none';
+      if (hint) hint.style.display = '';
+      section.style.display = '';
+    }
+    // Network errors: keep section hidden
+  }
+}
+
+function renderGalleryGrid(items) {
+  const grid  = $('gallery-grid');
+  const empty = $('gallery-empty');
+  if (!grid) return;
+
+  if (!items.length) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  grid.innerHTML = items.map(item => {
+    const isOwn = galleryState.currentPlayerId && item.playerId === galleryState.currentPlayerId;
+    const deleteBtn = isOwn
+      ? `<button class="gallery-delete-btn" data-gallery-id="${item.id}" title="Apagar">✕</button>`
+      : '';
+
+    if (item.type === 'photo') {
+      return `
+        <div class="gallery-item" data-id="${item.id}">
+          ${deleteBtn}
+          <div class="gallery-img-wrap">
+            <img class="gallery-img" src="${item.photoData}" alt="${escapeHtml(item.caption || 'Foto')}" loading="lazy" />
+          </div>
+          <div class="gallery-meta">
+            ${item.authorPhoto ? `<img class="gallery-author-avatar" src="${item.authorPhoto}" alt="${escapeHtml(item.authorName)}" />` : ''}
+            <div class="gallery-meta-text">
+              <span class="gallery-author">${escapeHtml(item.authorName)}</span>
+              ${item.caption ? `<span class="gallery-caption">${escapeHtml(item.caption)}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // video
+    const isYoutube = item.videoUrl && item.videoUrl.includes('youtube.com');
+    const isInstagram = item.videoUrl && item.videoUrl.includes('instagram.com');
+    let embedHtml = '';
+    if (isYoutube) {
+      const vid = (item.videoUrl.match(/[?&]v=([A-Za-z0-9_-]{11})/) || [])[1];
+      if (vid) embedHtml = `<iframe class="gallery-iframe" src="https://www.youtube.com/embed/${vid}" frameborder="0" allowfullscreen loading="lazy"></iframe>`;
+    }
+    if (isInstagram) {
+      // Instagram doesn't allow iframe embed easily — show as link card
+      embedHtml = `<a class="gallery-ig-link" href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener">
+        <span class="gallery-ig-icon">📷</span>
+        <span>Ver no Instagram</span>
+      </a>`;
+    }
+
+    return `
+      <div class="gallery-item gallery-item-video" data-id="${item.id}">
+        ${deleteBtn}
+        <div class="gallery-embed-wrap">${embedHtml}</div>
+        <div class="gallery-meta">
+          ${item.authorPhoto ? `<img class="gallery-author-avatar" src="${item.authorPhoto}" alt="${escapeHtml(item.authorName)}" />` : ''}
+          <div class="gallery-meta-text">
+            <span class="gallery-author">${escapeHtml(item.authorName)}</span>
+            ${item.caption ? `<span class="gallery-caption">${escapeHtml(item.caption)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Delete handlers
+  grid.querySelectorAll('.gallery-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Remover este item da galeria?')) return;
+      const id = Number(btn.dataset.galleryId);
+      try {
+        await request('/api/gallery', { method: 'DELETE', body: JSON.stringify({ id }) });
+        await loadGallery();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
+}
+
+function initGallery() {
+  const uploadBtn  = $('gallery-upload-btn');
+  const panel      = $('gallery-upload-panel');
+  const cancelBtn  = $('gallery-cancel-btn');
+  const submitBtn  = $('gallery-submit-btn');
+  const photoInput = $('gallery-photo-input');
+  const typeTabs   = document.querySelectorAll('.gallery-type-tab');
+  const feedback   = $('gallery-upload-feedback');
+
+  if (!uploadBtn) return;
+
+  uploadBtn.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    resetGalleryForm();
+  });
+  cancelBtn.addEventListener('click', () => {
+    panel.style.display = 'none';
+    resetGalleryForm();
+  });
+
+  // Type tabs
+  typeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      typeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      galleryState.type = tab.dataset.gtype;
+      $('gallery-photo-form').style.display = galleryState.type === 'photo' ? '' : 'none';
+      $('gallery-video-form').style.display = galleryState.type === 'video' ? '' : 'none';
+      updateGallerySubmitState();
+    });
+  });
+
+  // Video URL input
+  const videoUrlInput = $('gallery-video-url');
+  if (videoUrlInput) {
+    videoUrlInput.addEventListener('input', updateGallerySubmitState);
+  }
+
+  // Photo input via FileReader (iOS-safe)
+  if (photoInput) {
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = $('gallery-canvas');
+          const maxDim = 1200;
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          canvas.width  = Math.round(img.width  * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          try { galleryState.photoDataUrl = canvas.toDataURL('image/jpeg', 0.88); }
+          catch (_) { galleryState.photoDataUrl = canvas.toDataURL('image/png'); }
+          $('gallery-placeholder').style.display = 'none';
+          canvas.style.display = 'block';
+          photoInput.value = '';
+          updateGallerySubmitState();
+        };
+        img.onerror = () => { photoInput.value = ''; };
+        img.src = e.target.result;
+      };
+      reader.onerror = () => { photoInput.value = ''; };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Submit
+  submitBtn.addEventListener('click', async () => {
+    if (feedback) feedback.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Publicando…';
+    try {
+      const body = { type: galleryState.type, caption: ($('gallery-caption').value || '').trim() };
+      if (galleryState.type === 'photo') {
+        body.photoData = galleryState.photoDataUrl;
+      } else {
+        body.videoUrl = $('gallery-video-url').value.trim();
+      }
+      await request('/api/gallery', { method: 'POST', body: JSON.stringify(body) });
+      panel.style.display = 'none';
+      resetGalleryForm();
+      await loadGallery();
+    } catch (err) {
+      if (feedback) { feedback.style.color = 'var(--yellow)'; feedback.textContent = '⚠️ ' + err.message; }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Publicar';
+    }
+  });
+}
+
+function updateGallerySubmitState() {
+  const btn = $('gallery-submit-btn');
+  if (!btn) return;
+  if (galleryState.type === 'photo') {
+    btn.disabled = !galleryState.photoDataUrl;
+  } else {
+    const url = ($('gallery-video-url') || {}).value || '';
+    btn.disabled = !url.trim();
+  }
+}
+
+function resetGalleryForm() {
+  galleryState.photoDataUrl = null;
+  galleryState.type = 'photo';
+  const canvas = $('gallery-canvas');
+  if (canvas) { canvas.style.display = 'none'; canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }
+  const ph = $('gallery-placeholder');
+  if (ph) ph.style.display = '';
+  const videoUrl = $('gallery-video-url');
+  if (videoUrl) videoUrl.value = '';
+  const caption = $('gallery-caption');
+  if (caption) caption.value = '';
+  const fb = $('gallery-upload-feedback');
+  if (fb) fb.textContent = '';
+  const submitBtn = $('gallery-submit-btn');
+  if (submitBtn) submitBtn.disabled = true;
+  // Reset tabs
+  document.querySelectorAll('.gallery-type-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  const photoForm = $('gallery-photo-form');
+  const videoForm = $('gallery-video-form');
+  if (photoForm) photoForm.style.display = '';
+  if (videoForm) videoForm.style.display = 'none';
 }
 
 // ─── Photo capture & stylize ────────────────────────────────────────────────
@@ -1673,6 +1915,7 @@ async function bootstrap() {
     });
   }
 
+  initGallery();
   await loadPublicState().catch(() => {
     $('hero-date').textContent    = '—';
     $('hero-arrival').textContent = 'Erro ao carregar';
@@ -1680,7 +1923,7 @@ async function bootstrap() {
   });
 
   // Silently restore player session if cookie exists
-  loadPlayerSession().catch(() => {});
+  loadPlayerSession().then(() => { loadGallery().catch(() => {}); }).catch(() => {});
   try {
     await loadAdminState();
     state.isAdmin = true;

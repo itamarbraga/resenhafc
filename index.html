@@ -326,6 +326,66 @@
         </div>
       </section>
 
+
+      <!-- ── Gallery ───────────────────────────────────────────────────────── -->
+      <section class="section-block" id="gallery-section" style="display:none">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Comunidade</p>
+              <h2>📸 Galeria</h2>
+            </div>
+            <button id="gallery-upload-btn" class="btn btn-primary" type="button">+ Adicionar</button>
+          </div>
+
+          <!-- Upload panel -->
+          <div id="gallery-upload-panel" class="gallery-upload-panel" style="display:none">
+            <div class="gallery-type-tabs">
+              <button class="gallery-type-tab active" data-gtype="photo">📷 Foto</button>
+              <button class="gallery-type-tab" data-gtype="video">🎬 Vídeo</button>
+            </div>
+
+            <!-- Photo upload -->
+            <div id="gallery-photo-form" class="gallery-form-section">
+              <label class="gallery-photo-label" id="gallery-photo-label" for="gallery-photo-input">
+                <div id="gallery-preview-wrap" class="gallery-preview-wrap">
+                  <canvas id="gallery-canvas" style="display:none;border-radius:8px;max-width:100%"></canvas>
+                  <div id="gallery-placeholder" class="gallery-placeholder">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Toque para escolher uma foto</span>
+                  </div>
+                </div>
+              </label>
+              <input type="file" id="gallery-photo-input" accept="image/*" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
+            </div>
+
+            <!-- Video URL -->
+            <div id="gallery-video-form" class="gallery-form-section" style="display:none">
+              <label class="field" style="margin-bottom:0">
+                <span>Link do YouTube ou Instagram</span>
+                <input id="gallery-video-url" type="url" placeholder="https://youtube.com/watch?v=..." style="font-size:16px" />
+              </label>
+            </div>
+
+            <!-- Caption + submit (shared) -->
+            <label class="field" style="margin-top:12px;margin-bottom:0">
+              <span>Legenda <small style="font-weight:400;opacity:0.6">(opcional)</small></span>
+              <input id="gallery-caption" type="text" placeholder="Ex: Gol da rodada 🔥" maxlength="300" style="font-size:16px" />
+            </label>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+              <button id="gallery-submit-btn" class="btn btn-primary" type="button" disabled>Publicar</button>
+              <button id="gallery-cancel-btn" class="btn btn-secondary" type="button">Cancelar</button>
+            </div>
+            <p id="gallery-upload-feedback" style="margin-top:8px;font-size:0.85rem;min-height:20px"></p>
+          </div>
+
+          <!-- Grid -->
+          <div id="gallery-grid" class="gallery-grid"></div>
+          <p id="gallery-empty" class="empty-state" style="display:none">Ainda não há fotos ou vídeos. Seja o primeiro a publicar! 🎉</p>
+          <p id="gallery-login-hint" class="empty-state" style="display:none">🔐 Faça login para ver e publicar na galeria.</p>
+        </div>
+      </section>
+
       <!-- ── Rankings ─────────────────────────────────────────────────────── -->
       <section class="section-block" id="rankings-section">
         <div class="container">

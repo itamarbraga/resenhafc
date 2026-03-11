@@ -142,6 +142,15 @@ async function _runInit(env) {
       player_name TEXT NOT NULL,
       goals INTEGER NOT NULL DEFAULT 0
     )`,
+    `CREATE TABLE IF NOT EXISTS gallery (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'photo',
+      photo_data TEXT,
+      video_url TEXT,
+      caption TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
 
   for (const sql of statements) {
@@ -642,4 +651,46 @@ export async function buildStats(env) {
   }));
 
   return { goatRanking, goldenBoot, totalDays };
+}
+
+// ─── Gallery ─────────────────────────────────────────────────────────────────
+
+export async function listGallery(env) {
+  const result = await env.DB
+    .prepare(`
+      SELECT g.id, g.player_id, g.type, g.photo_data, g.video_url, g.caption, g.created_at,
+             p.first_name, p.last_name, p.photo_data AS author_photo
+      FROM gallery g
+      JOIN players p ON p.id = g.player_id
+      ORDER BY g.created_at DESC
+      LIMIT 200
+    `)
+    .all();
+  return (result.results || []).map(r => ({
+    id: r.id,
+    playerId: r.player_id,
+    type: r.type,
+    photoData: r.photo_data || null,
+    videoUrl: r.video_url || null,
+    caption: r.caption || '',
+    createdAt: r.created_at,
+    authorName: `${r.first_name} ${r.last_name}`,
+    authorPhoto: r.author_photo || null,
+  }));
+}
+
+export async function addGalleryItem(env, { playerId, type, photoData, videoUrl, caption }) {
+  await env.DB
+    .prepare('INSERT INTO gallery (player_id, type, photo_data, video_url, caption) VALUES (?1,?2,?3,?4,?5)')
+    .bind(playerId, type, photoData || null, videoUrl || null, (caption || '').slice(0, 300))
+    .run();
+}
+
+export async function deleteGalleryItem(env, id, playerId) {
+  // playerId null = admin delete (no ownership check)
+  if (playerId) {
+    await env.DB.prepare('DELETE FROM gallery WHERE id = ?1 AND player_id = ?2').bind(id, playerId).run();
+  } else {
+    await env.DB.prepare('DELETE FROM gallery WHERE id = ?1').bind(id).run();
+  }
 }
