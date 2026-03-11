@@ -1550,7 +1550,7 @@ function populateAddMemberDropdown(players) {
     .forEach(p => {
       const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
       const opt = document.createElement('option');
-      opt.value = `${p.id}:${name}`;   // "id:fullname" — id used to fetch photo
+      opt.value = String(p.id);        // just the numeric id — simple and safe
       opt.textContent = name;
       if (opt.value === prev) opt.selected = true;
       sel.appendChild(opt);
@@ -1564,10 +1564,10 @@ async function addConfirmedMember(event) {
 
   let name, playerId = null;
   if (sel && sel.value) {
-    // value is "id:fullname"
-    const colonIdx = sel.value.indexOf(':');
-    playerId = Number(sel.value.slice(0, colonIdx));
-    name     = sel.value.slice(colonIdx + 1);
+    // value is the numeric player id; text is the display name
+    playerId = Number(sel.value);
+    const selectedOpt = sel.options[sel.selectedIndex];
+    name = selectedOpt ? selectedOpt.textContent.trim() : '';
   } else {
     name = input ? input.value.trim() : '';
   }
