@@ -1550,9 +1550,9 @@ function populateAddMemberDropdown(players) {
     .forEach(p => {
       const name = (p.fullName || `${p.firstName} ${p.lastName}`).trim();
       const opt = document.createElement('option');
-      opt.value = name;
+      opt.value = `${p.id}:${name}`;   // "id:fullname" — id used to fetch photo
       opt.textContent = name;
-      if (name === prev) opt.selected = true;
+      if (opt.value === prev) opt.selected = true;
       sel.appendChild(opt);
     });
 }
@@ -1561,8 +1561,17 @@ async function addConfirmedMember(event) {
   event.preventDefault();
   const sel   = $('add-member-select');
   const input = $('add-member-name');
-  // Prefer dropdown; fallback to manual text input
-  const name = (sel && sel.value) ? sel.value : (input ? input.value.trim() : '');
+
+  let name, playerId = null;
+  if (sel && sel.value) {
+    // value is "id:fullname"
+    const colonIdx = sel.value.indexOf(':');
+    playerId = Number(sel.value.slice(0, colonIdx));
+    name     = sel.value.slice(colonIdx + 1);
+  } else {
+    name = input ? input.value.trim() : '';
+  }
+
   if (!name) {
     alert('Selecione um jogador ou digite um nome.');
     return;
@@ -1570,7 +1579,7 @@ async function addConfirmedMember(event) {
   try {
     await request('/api/admin/members', {
       method: 'POST',
-      body: JSON.stringify({ name, status: 'confirmed' }),
+      body: JSON.stringify({ name, playerId, status: 'confirmed' }),
     });
     if (sel)   sel.value   = '';
     if (input) input.value = '';
