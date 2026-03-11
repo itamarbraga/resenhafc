@@ -8,15 +8,19 @@ export async function onRequestGet(context) {
     const session = await requireAdmin(context.request, context.env);
     if (!session) return error('Não autorizado.', 401);
 
-    // Show last 10 members with their player_id and photo presence
+    // Raw confirmed members with player_id and photo presence
     const members = await context.env.DB
-      .prepare(`SELECT m.id, m.name, m.status, m.player_id,
-                       CASE WHEN m.photo_data IS NOT NULL THEN 'sim' ELSE 'não' END AS tem_foto_member,
-                       CASE WHEN p.photo_data IS NOT NULL THEN 'sim' ELSE 'não' END AS tem_foto_player,
-                       COALESCE(p.photo_data, m.photo_data) IS NOT NULL AS foto_final
-                FROM members m
-                LEFT JOIN players p ON m.player_id = p.id
-                ORDER BY m.id DESC LIMIT 10`)
+      .prepare(`
+        SELECT m.id, m.name, m.status, m.player_id,
+               CASE WHEN m.photo_data IS NOT NULL AND m.photo_data != '' THEN 'sim' ELSE 'não' END AS tem_foto_propria,
+               CASE WHEN p.photo_data IS NOT NULL AND p.photo_data != '' THEN 'sim' ELSE 'não' END AS tem_foto_perfil,
+               p.first_name, p.last_name
+        FROM members m
+        LEFT JOIN players p ON m.player_id = p.id
+        WHERE m.status = 'confirmed'
+        ORDER BY m.id DESC
+        LIMIT 20
+      `)
       .all();
 
     return json({ ok: true, members: members.results });
