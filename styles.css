@@ -1060,6 +1060,28 @@ input:focus {
     position: static;
   }
 
+  .brand-wrap {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+  }
+
+  .club-logo {
+    width: 110px !important;
+    height: auto !important;
+  }
+
+  .eyebrow,
+  .site-description,
+  .hero-meta-row {
+    text-align: center;
+  }
+
+  .hero-meta-row {
+    justify-content: center;
+  }
+
   .section-block .container,
   .hero-card {
     padding: 18px;
@@ -1999,7 +2021,7 @@ body,
 /* ── Club logo size on phones ─────────────────────────────────────────── */
 @media (max-width: 560px) {
   .club-logo {
-    width: 90px !important;
+    width: 100px !important;
     height: auto !important;
   }
   .site-title {
