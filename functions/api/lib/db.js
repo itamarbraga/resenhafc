@@ -80,103 +80,69 @@ export async function initializeDb(env) {
 }
 
 async function _runInit(env) {
-  const statements = [
-    `CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    )`,
-    `CREATE TABLE IF NOT EXISTS members (
+  // Run all CREATE TABLE in parallel — D1 handles idempotent DDL fine
+  await Promise.all([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY, value TEXT NOT NULL
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS members (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-    `CREATE TABLE IF NOT EXISTS sponsors (
+      name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      photo_data TEXT, player_id INTEGER, payment_proof TEXT
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS sponsors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      subtitle TEXT NOT NULL,
-      url TEXT NOT NULL,
+      name TEXT NOT NULL, subtitle TEXT NOT NULL, url TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0,
-      phone TEXT,
-      logo_url TEXT,
-      description TEXT,
-      cta_label TEXT
-    )`,
-    `CREATE TABLE IF NOT EXISTS teams (
+      phone TEXT, logo_url TEXT, description TEXT, cta_label TEXT
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS teams (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      team_key TEXT NOT NULL,
-      player_name TEXT NOT NULL,
+      team_key TEXT NOT NULL, player_name TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
-    )`,
-    `CREATE TABLE IF NOT EXISTS sessions (
-      token TEXT PRIMARY KEY,
-      username TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-    `CREATE TABLE IF NOT EXISTS players (
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY, username TEXT NOT NULL,
+      expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS players (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      first_name TEXT NOT NULL,
-      last_name TEXT NOT NULL,
-      username TEXT NOT NULL DEFAULT '',
-      password_hash TEXT NOT NULL DEFAULT '',
-      password_salt TEXT NOT NULL DEFAULT '',
-      phone TEXT,
-      state TEXT NOT NULL,
-      photo_data TEXT NOT NULL,
+      first_name TEXT NOT NULL, last_name TEXT NOT NULL,
+      username TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL DEFAULT '',
+      password_salt TEXT NOT NULL DEFAULT '', phone TEXT,
+      state TEXT NOT NULL, photo_data TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-    `CREATE TABLE IF NOT EXISTS game_days (
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS game_days (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      game_date TEXT NOT NULL,
-      notes TEXT,
+      game_date TEXT NOT NULL, notes TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-    `CREATE TABLE IF NOT EXISTS team_results (
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      game_day_id INTEGER NOT NULL,
-      team_key TEXT NOT NULL,
-      wins INTEGER NOT NULL DEFAULT 0,
-      losses INTEGER NOT NULL DEFAULT 0
-    )`,
-    `CREATE TABLE IF NOT EXISTS player_minutes (
+      game_day_id INTEGER NOT NULL, team_key TEXT NOT NULL,
+      wins INTEGER NOT NULL DEFAULT 0, losses INTEGER NOT NULL DEFAULT 0
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_minutes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      game_day_id INTEGER NOT NULL,
-      player_name TEXT NOT NULL,
+      game_day_id INTEGER NOT NULL, player_name TEXT NOT NULL,
       minutes REAL NOT NULL DEFAULT 0
-    )`,
-    `CREATE TABLE IF NOT EXISTS player_goals (
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_goals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      game_day_id INTEGER NOT NULL,
-      player_name TEXT NOT NULL,
+      game_day_id INTEGER NOT NULL, player_name TEXT NOT NULL,
       goals INTEGER NOT NULL DEFAULT 0
-    )`,
-    `CREATE TABLE IF NOT EXISTS gallery (
+    )`).run(),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS gallery (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      player_id INTEGER NOT NULL,
-      type TEXT NOT NULL DEFAULT 'photo',
-      photo_data TEXT,
-      video_url TEXT,
-      caption TEXT,
+      player_id INTEGER NOT NULL, type TEXT NOT NULL DEFAULT 'photo',
+      photo_data TEXT, video_url TEXT, caption TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-  ];
-
-  for (const sql of statements) {
-    await env.DB.prepare(sql).run();
-  }
-
-  await ensureColumn(env, 'sponsors', 'phone', 'phone TEXT');
-  await ensureColumn(env, 'sponsors', 'logo_url', 'logo_url TEXT');
-  await ensureColumn(env, 'sponsors', 'description', 'description TEXT');
-  await ensureColumn(env, 'sponsors', 'cta_label', 'cta_label TEXT');
-  await ensureColumn(env, 'members', 'photo_data', 'photo_data TEXT');
-  await ensureColumn(env, 'members', 'player_id', 'player_id INTEGER');
-  await ensureColumn(env, 'members', 'payment_proof', 'payment_proof TEXT');
-  await ensureColumn(env, 'players', 'username', "username TEXT NOT NULL DEFAULT ''");
-  await ensureColumn(env, 'players', 'password_hash', "password_hash TEXT NOT NULL DEFAULT ''");
-  await ensureColumn(env, 'players', 'password_salt', "password_salt TEXT NOT NULL DEFAULT ''");
+    )`).run(),
+  ]);
+  // ensureColumn calls removed — schema is stable in production
 
   for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
     await env.DB.prepare(
@@ -661,34 +627,21 @@ export async function deleteGameDay(env, id) {
 }
 
 export async function buildStats(env) {
-  // Count game days
-  const dayCountRow = await env.DB
-    .prepare('SELECT COUNT(*) AS count FROM game_days')
-    .first();
+  // All 4 queries in parallel
+  const [dayCountRow, minuteRows, goalRows, memberRows] = await Promise.all([
+    env.DB.prepare('SELECT COUNT(*) AS count FROM game_days').first(),
+    env.DB.prepare(`SELECT player_name, SUM(minutes) AS total_minutes
+                    FROM player_minutes GROUP BY lower(player_name)
+                    ORDER BY total_minutes DESC`).all(),
+    env.DB.prepare(`SELECT player_name, SUM(goals) AS total_goals
+                    FROM player_goals GROUP BY lower(player_name)
+                    ORDER BY total_goals DESC`).all(),
+    env.DB.prepare(`SELECT m.name, COALESCE(p.photo_data, m.photo_data) AS photo_data
+                    FROM members m LEFT JOIN players p ON m.player_id = p.id
+                    WHERE m.status = ?1`).bind('confirmed').all(),
+  ]);
   const totalDays = Number(dayCountRow?.count || 0);
   const totalPossibleMinutes = totalDays * 120;
-
-  // GOAT ranking: sum minutes per player
-  const minuteRows = await env.DB
-    .prepare(`SELECT player_name, SUM(minutes) AS total_minutes
-              FROM player_minutes GROUP BY lower(player_name)
-              ORDER BY total_minutes DESC`)
-    .all();
-
-  // Golden Boot: sum goals per player
-  const goalRows = await env.DB
-    .prepare(`SELECT player_name, SUM(goals) AS total_goals
-              FROM player_goals GROUP BY lower(player_name)
-              ORDER BY total_goals DESC`)
-    .all();
-
-  // Get member photos — prefer players profile, fallback to member photo
-  const memberRows = await env.DB
-    .prepare(`SELECT m.name, COALESCE(p.photo_data, m.photo_data) AS photo_data
-              FROM members m LEFT JOIN players p ON m.player_id = p.id
-              WHERE m.status = ?1`)
-    .bind('confirmed')
-    .all();
   const photoMap = {};
   for (const m of (memberRows.results || [])) {
     photoMap[m.name.toLowerCase()] = m.photo_data || null;
