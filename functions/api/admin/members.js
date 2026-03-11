@@ -1,4 +1,4 @@
-import { addMember, buildPublicState, deleteMember, getPlayer, initializeDb, memberExists, updateMemberStatus } from '../lib/db.js';
+import { buildPublicState, deleteMember, initializeDb, memberExists, updateMemberStatus } from '../lib/db.js';
 import { requireAdmin } from '../lib/auth.js';
 import { error, json, sanitizeName } from '../lib/helpers.js';
 
@@ -15,20 +15,17 @@ export async function onRequestPost(context) {
     const name = sanitizeName(body.name);
     const status = body.status === 'confirmed' ? 'confirmed' : 'pending';
     if (!name || name.length < 2) return error('Digite um nome válido.');
-    if (await memberExists(context.env, name)) return error('Esse nome já existe.');
+    if (await memberExists(context.env, name)) return error('Esse nome já existe na lista.');
 
-    let playerId = null;
+    // playerId comes directly from the dropdown — no need to re-fetch from DB
+    const playerId = body.playerId ? Number(body.playerId) : null;
 
-    if (body.playerId) {
-      // Verify player exists — photo comes automatically via JOIN in listMembers
-      const player = await getPlayer(context.env, Number(body.playerId));
-      if (player) playerId = player.id;
-    }
-
-    // Never store photo in members.photo_data when player_id is known —
-    // the JOIN `COALESCE(p.photo_data, m.photo_data)` in listMembers handles it.
-    // Storing a large base64 blob twice wastes space and can cause silent failures.
-    await addMember(context.env, name, status, null, playerId);
+    // Insert member. When playerId is set, listMembers joins players table
+    // automatically (COALESCE(p.photo_data, m.photo_data)) — no need to copy photo.
+    await context.env.DB
+      .prepare('INSERT INTO members (name, status, photo_data, player_id, payment_proof) VALUES (?1, ?2, NULL, ?3, NULL)')
+      .bind(name, status, playerId)
+      .run();
 
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
@@ -46,7 +43,7 @@ export async function onRequestPatch(context) {
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
     if (err.message === '401') return error('Sessão expirada.', 401);
-    return error(err.message || 'Não foi possível atualizar o jogador.', 500);
+    return error(err.message || 'Não foi possível atualizar.', 500);
   }
 }
 
@@ -58,6 +55,6 @@ export async function onRequestDelete(context) {
     return json({ ok: true, state: await buildPublicState(context.env) });
   } catch (err) {
     if (err.message === '401') return error('Sessão expirada.', 401);
-    return error(err.message || 'Não foi possível remover o jogador.', 500);
+    return error(err.message || 'Não foi possível remover.', 500);
   }
 }
