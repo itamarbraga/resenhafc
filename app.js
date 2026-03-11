@@ -1971,9 +1971,13 @@ function attachEvents() {
 }
 
 async function bootstrap() {
-  attachEvents();
-  initPhotoUpload();
-  initPlayerPhotoUpload();
+  try { attachEvents(); } catch (e) {
+    console.error('[bootstrap] attachEvents failed:', e);
+    showLoadError('Erro de inicialização (attachEvents): ' + e.message);
+    return;
+  }
+  try { initPhotoUpload(); } catch (e) { console.error('[bootstrap] initPhotoUpload:', e); }
+  try { initPlayerPhotoUpload(); } catch (e) { console.error('[bootstrap] initPlayerPhotoUpload:', e); }
 
   // Triple-click on logo opens admin (hidden entry point)
   const logo = document.querySelector('.club-logo');
@@ -2010,8 +2014,13 @@ async function bootstrap() {
   }
 }
 
-bootstrap().catch(() => {
-  // Errors already surfaced via showLoadError banner
+bootstrap().catch((e) => {
+  console.error('[bootstrap] unhandled error:', e);
+  // Try to show something useful even if banner failed
+  try {
+    const h = document.getElementById('hero-date');
+    if (h && h.textContent === 'Conectando…') h.textContent = 'Erro ao carregar';
+  } catch (_) {}
 });
 
 // iOS Safari bfcache fix: when the user navigates back, the page is restored

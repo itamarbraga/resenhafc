@@ -63,10 +63,20 @@ let _dbInitPromise = null;
 
 export async function initializeDb(env) {
   if (_dbInitialized) return;
-  if (_dbInitPromise) { await _dbInitPromise; return; }
+  if (_dbInitPromise) {
+    try { await _dbInitPromise; return; } catch (_) {
+      // Previous init failed — reset and retry
+      _dbInitPromise = null;
+    }
+  }
   _dbInitPromise = _runInit(env);
-  await _dbInitPromise;
-  _dbInitialized = true;
+  try {
+    await _dbInitPromise;
+    _dbInitialized = true;
+  } catch (err) {
+    _dbInitPromise = null;  // Allow retry on next request
+    throw err;
+  }
 }
 
 async function _runInit(env) {

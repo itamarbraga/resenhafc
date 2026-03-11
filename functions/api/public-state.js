@@ -7,6 +7,8 @@ export async function onRequestGet(context) {
     const data = await buildPublicState(context.env);
     return json(data);
   } catch (err) {
-    return error(err.message || 'Erro ao carregar estado público.', 500);
+    // Surface the actual error message — helps diagnose DB/init issues
+    console.error('[public-state] error:', err?.message, err?.stack);
+    return error(`Erro ao carregar estado: ${err?.message || 'erro desconhecido'}`, 500);
   }
 }
