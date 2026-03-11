@@ -280,18 +280,6 @@
 
           <div id="confirmed-list" class="confirmed-grid"></div>
 
-          <!-- map: game list states -->
-          <div class="brazil-map-block" id="game-map-block">
-            <div class="brazil-map-header">
-              <span class="brazil-map-title">🗺️ Representação na lista</span>
-            </div>
-            <div class="brazil-map-wrap">
-              <div class="brazil-map-svg-outer">
-                <svg id="game-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
-              </div>
-              <div id="game-map-legend" class="map-legend"></div>
-            </div>
-          </div>
 
           <template id="confirmed-item-template">
             <div class="confirmed-item">
@@ -306,20 +294,34 @@
         </div>
       </section>
 
-      <!-- ── Members map ────────────────────────────────────────────────── -->
-      <section class="section-block" id="members-map-section">
+      <!-- ── Dual maps ──────────────────────────────────────────────────── -->
+      <section class="section-block" id="maps-section">
         <div class="container">
-          <div class="section-header">
-            <div>
-              <p class="section-kicker">Comunidade</p>
-              <h2>Mapa de membros</h2>
+          <div class="maps-row">
+            <div class="map-card">
+              <div class="map-card-header">
+                <p class="section-kicker">Lista do jogo</p>
+                <h3>🗺️ Representação na lista</h3>
+              </div>
+              <div class="brazil-map-wrap">
+                <div class="brazil-map-svg-outer">
+                  <svg id="game-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+                <div id="game-map-legend" class="map-legend"></div>
+              </div>
             </div>
-          </div>
-          <div class="brazil-map-wrap">
-            <div class="brazil-map-svg-outer">
-              <svg id="members-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="map-card">
+              <div class="map-card-header">
+                <p class="section-kicker">Comunidade</p>
+                <h3>🗺️ Mapa de membros</h3>
+              </div>
+              <div class="brazil-map-wrap">
+                <div class="brazil-map-svg-outer">
+                  <svg id="members-map-svg" viewBox="0 0 520 560" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+                <div id="members-map-legend" class="map-legend"></div>
+              </div>
             </div>
-            <div id="members-map-legend" class="map-legend"></div>
           </div>
         </div>
       </section>
