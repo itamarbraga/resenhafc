@@ -603,15 +603,22 @@ function renderBrazilMap(list, svgId, legendId) {
   if (!svg || !legend) return;
 
   // Build per-state player lists (name + photo)
+  // Normalise: members use {name, photo}, approvedPlayers use {fullName, photoData}
+  function normItem(item) {
+    return {
+      name:  item.name  || item.fullName || item.n || '',
+      photo: item.photo || item.photoData || item.p || null,
+      state: item.state || item.s || null,
+    };
+  }
   const stateMap = {};
   (list || []).forEach(item => {
-    const s = item.state || item.s;
-    if (!s) return;
-    if (!stateMap[s]) stateMap[s] = [];
-    stateMap[s].push({ name: item.name || item.n || '', photo: item.photo || item.p || null });
+    const norm = normItem(item);
+    if (!norm.state) return;
+    if (!stateMap[norm.state]) stateMap[norm.state] = [];
+    stateMap[norm.state].push(norm);
   });
-  const intlPlayers = (list || []).filter(item => !(item.state || item.s))
-    .map(item => ({ name: item.name || item.n || '', photo: item.photo || item.p || null }));
+  const intlPlayers = (list || []).filter(item => !(item.state || item.s)).map(normItem);
 
   const counts = {};
   Object.entries(stateMap).forEach(([k,v]) => counts[k] = v.length);
