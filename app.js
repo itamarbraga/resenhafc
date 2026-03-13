@@ -7,6 +7,201 @@ const state = {
 
 const WHATSAPP_URL = 'https://chat.whatsapp.com/GmARWruqeGgApY8gQY7rcb';
 
+// ─── Translations (i18n) ────────────────────────────────────────────────────
+
+const TRANSLATIONS = {
+  pt: {
+    eyebrow:            'Futebol · Comunidade · Resenha',
+    site_description:   'Este é um grupo de brasileiros e amigos que vivem em Groningen ou na região, que amam futebol e se reúnem uma vez por semana para jogar, socializar e se divertir.',
+    btn_register:       '👤 Cadastrar',
+    btn_join:           '⚽ Entrar na lista',
+    btn_login:          '🔐 Login',
+    btn_whatsapp:       'Entrar no grupo WhatsApp',
+    kicker_next_game:   'Próxima pelada',
+    title_countdown:    'Contagem regressiva',
+    label_days:         'Dias',
+    label_hours:        'Horas',
+    label_min:          'Min',
+    label_date:         'Data',
+    label_arrival:      'Chegada',
+    label_window:       'Janela',
+    kicker_venue:       'Local',
+    btn_map:            'Ver no mapa',
+    kicker_slots:       'Vagas',
+    label_confirmed:    'confirmados',
+    kicker_players:     'Jogadores',
+    title_confirmed_list: 'Lista confirmada',
+    kicker_game_list:   'Lista do jogo',
+    title_map_game:     '🗺️ Representação na lista',
+    kicker_community:   'Comunidade',
+    title_map_members:  '🗺️ Mapa de membros',
+    title_gallery:      '📸 Galeria',
+    btn_add:            '+ Adicionar',
+    tab_photo:          '📷 Foto',
+    tab_video:          '🎬 Vídeo',
+    label_video_link:   'Link do YouTube ou Instagram',
+    label_caption:      'Legenda',
+    label_optional:     '(opcional)',
+    btn_publish:        'Publicar',
+    btn_cancel:         'Cancelar',
+    gallery_empty:      'Ainda não há fotos ou vídeos. Seja o primeiro a publicar! 🎉',
+    gallery_login_hint: '🔐 Faça login para ver e publicar na galeria.',
+    kicker_stats:       'Estatísticas',
+    title_rankings:     'Rankings',
+    tab_goat:           '🏆 GOAT',
+    tab_golden_boot:    '⚽ Chuteira de Ouro',
+    legend_goat:        'Ratio de minutos jogados por dia (meta: 120 min)',
+    legend_boot:        'Total de gols marcados em todas as partidas',
+    kicker_org:         'Organização',
+    title_teams:        'Times',
+    teams_empty:        'Os times ainda não foram gerados.',
+    team_red:           '🔴 Time Vermelho',
+    team_yellow:        '🟡 Time Amarelo',
+    team_blue:          '🔵 Time Azul',
+    // dynamic strings used in renderPublic
+    arrival_prefix:     'Chegada',
+    pay_btn_label:      'Pagar',
+    per_player:         'por jogador',
+    sponsors_title:     'Patrocinadores',
+    sponsors_kicker:    'Parceiros',
+  },
+  en: {
+    eyebrow:            'Football · Community · Hang Out',
+    site_description:   'A group of Brazilians and friends living in Groningen and the surrounding area who love football and meet weekly to play, socialize, and have fun.',
+    btn_register:       '👤 Sign Up',
+    btn_join:           '⚽ Join the list',
+    btn_login:          '🔐 Login',
+    btn_whatsapp:       'Join WhatsApp group',
+    kicker_next_game:   'Next match',
+    title_countdown:    'Countdown',
+    label_days:         'Days',
+    label_hours:        'Hours',
+    label_min:          'Min',
+    label_date:         'Date',
+    label_arrival:      'Arrival',
+    label_window:       'Window',
+    kicker_venue:       'Venue',
+    btn_map:            'View on map',
+    kicker_slots:       'Spots',
+    label_confirmed:    'confirmed',
+    kicker_players:     'Players',
+    title_confirmed_list: 'Confirmed list',
+    kicker_game_list:   'Match list',
+    title_map_game:     '🗺️ Representation in list',
+    kicker_community:   'Community',
+    title_map_members:  '🗺️ Members map',
+    title_gallery:      '📸 Gallery',
+    btn_add:            '+ Add',
+    tab_photo:          '📷 Photo',
+    tab_video:          '🎬 Video',
+    label_video_link:   'YouTube or Instagram link',
+    label_caption:      'Caption',
+    label_optional:     '(optional)',
+    btn_publish:        'Publish',
+    btn_cancel:         'Cancel',
+    gallery_empty:      'No photos or videos yet. Be the first to post! 🎉',
+    gallery_login_hint: '🔐 Log in to view and post in the gallery.',
+    kicker_stats:       'Statistics',
+    title_rankings:     'Rankings',
+    tab_goat:           '🏆 GOAT',
+    tab_golden_boot:    '⚽ Golden Boot',
+    legend_goat:        'Minutes played ratio per day (goal: 120 min)',
+    legend_boot:        'Total goals scored across all matches',
+    kicker_org:         'Organization',
+    title_teams:        'Teams',
+    teams_empty:        'Teams have not been generated yet.',
+    team_red:           '🔴 Red Team',
+    team_yellow:        '🟡 Yellow Team',
+    team_blue:          '🔵 Blue Team',
+    arrival_prefix:     'Arrival',
+    pay_btn_label:      'Pay',
+    per_player:         'per player',
+    sponsors_title:     'Sponsors',
+    sponsors_kicker:    'Partners',
+  },
+  es: {
+    eyebrow:            'Fútbol · Comunidad · Reseña',
+    site_description:   'Un grupo de brasileños y amigos que viven en Groningen y alrededores, que aman el fútbol y se reúnen semanalmente para jugar, socializar y divertirse.',
+    btn_register:       '👤 Registrarse',
+    btn_join:           '⚽ Unirse a la lista',
+    btn_login:          '🔐 Iniciar sesión',
+    btn_whatsapp:       'Unirse al grupo de WhatsApp',
+    kicker_next_game:   'Próximo partido',
+    title_countdown:    'Cuenta regresiva',
+    label_days:         'Días',
+    label_hours:        'Horas',
+    label_min:          'Min',
+    label_date:         'Fecha',
+    label_arrival:      'Llegada',
+    label_window:       'Ventana',
+    kicker_venue:       'Lugar',
+    btn_map:            'Ver en el mapa',
+    kicker_slots:       'Lugares',
+    label_confirmed:    'confirmados',
+    kicker_players:     'Jugadores',
+    title_confirmed_list: 'Lista confirmada',
+    kicker_game_list:   'Lista del partido',
+    title_map_game:     '🗺️ Representación en la lista',
+    kicker_community:   'Comunidad',
+    title_map_members:  '🗺️ Mapa de miembros',
+    title_gallery:      '📸 Galería',
+    btn_add:            '+ Agregar',
+    tab_photo:          '📷 Foto',
+    tab_video:          '🎬 Video',
+    label_video_link:   'Enlace de YouTube o Instagram',
+    label_caption:      'Leyenda',
+    label_optional:     '(opcional)',
+    btn_publish:        'Publicar',
+    btn_cancel:         'Cancelar',
+    gallery_empty:      'Aún no hay fotos ni videos. ¡Sé el primero en publicar! 🎉',
+    gallery_login_hint: '🔐 Inicia sesión para ver y publicar en la galería.',
+    kicker_stats:       'Estadísticas',
+    title_rankings:     'Rankings',
+    tab_goat:           '🏆 GOAT',
+    tab_golden_boot:    '⚽ Bota de Oro',
+    legend_goat:        'Ratio de minutos jugados por día (meta: 120 min)',
+    legend_boot:        'Total de goles marcados en todos los partidos',
+    kicker_org:         'Organización',
+    title_teams:        'Equipos',
+    teams_empty:        'Los equipos aún no han sido generados.',
+    team_red:           '🔴 Equipo Rojo',
+    team_yellow:        '🟡 Equipo Amarillo',
+    team_blue:          '🔵 Equipo Azul',
+    arrival_prefix:     'Llegada',
+    pay_btn_label:      'Pagar',
+    per_player:         'por jugador',
+    sponsors_title:     'Patrocinadores',
+    sponsors_kicker:    'Socios',
+  },
+};
+
+let currentLang = localStorage.getItem('bfc_lang') || 'pt';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] || TRANSLATIONS.pt)[key] || TRANSLATIONS.pt[key] || key;
+}
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('bfc_lang', lang);
+
+  // Update active button
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+
+  // Apply static translations
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+
+  // Re-render dynamic parts if data is loaded
+  if (state.publicData) renderPublic();
+}
+
+
 const $ = (id) => document.getElementById(id);
 
 function euro(value) {
@@ -104,7 +299,7 @@ function renderPublic() {
 
   const { config, members, sponsors, teams, benchTeam, storage, stats, approvedPlayers } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
-  $('hero-arrival').textContent = `Chegada ${config.arrivalTime}`;
+  $('hero-arrival').textContent = `${t('arrival_prefix')} ${config.arrivalTime}`;
   $('hero-window').textContent = `Início: ${config.startTime} — ${config.endTime}`;
   $('game-date-inline').textContent = formatPrettyDate(config.gameDate);
   $('arrival-inline').textContent = config.arrivalTime;
@@ -113,9 +308,9 @@ function renderPublic() {
   $('venue-address').textContent = config.address;
   $('max-slots-label').textContent = String(config.maxSlots);
   $('players-count').textContent = String(members.length);
-  $('payment-inline').textContent = `${euro(config.paymentAmount)} por jogador`;
+  $('payment-inline').textContent = `${euro(config.paymentAmount)} ${t('per_player')}`;
   $('maps-link').href = config.mapsUrl || '#';
-  $('pay-btn').textContent = `Pagar ${euro(config.paymentAmount)}`;
+  $('pay-btn').textContent = `${t('pay_btn_label')} ${euro(config.paymentAmount)}`;
   $('pay-btn').href = config.paymentLink || '#';
   $('whatsapp-btn').href = config.whatsappLink || WHATSAPP_URL;
   $('storage-badge').textContent = storage || 'Cloudflare D1';
@@ -1873,6 +2068,11 @@ async function saveGameResults() {
 }
 
 function attachEvents() {
+  // Lang switcher
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+  });
+
   $('open-admin-btn').addEventListener('click', openAdmin);
   document.querySelectorAll('[data-close-modal]').forEach((node) => node.addEventListener('click', closeAdmin));
   $('admin-login-form').addEventListener('submit', loginAdmin);
@@ -1963,6 +2163,9 @@ async function bootstrap() {
     return;
   }
   try { initPlayerPhotoUpload(); } catch (e) { console.error('[bootstrap] initPlayerPhotoUpload:', e); }
+
+  // Apply saved language on first load
+  applyLang(currentLang);
 
   // Triple-click on logo opens admin (hidden entry point)
   const logo = document.querySelector('.club-logo');

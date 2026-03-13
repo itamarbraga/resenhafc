@@ -21,11 +21,10 @@
           <img src="/assets/logo.svg" alt="Brazukas FC Groningen" class="club-logo" />
 
           <div class="brand-copy">
-            <p class="eyebrow">Futebol · Comunidade · Resenha</p>
+            <p class="eyebrow" data-i18n="eyebrow">Futebol · Comunidade · Resenha</p>
             <h1 class="site-title">Brazukas FC Groningen</h1>
             <p class="site-description">
-              Este é um grupo de brasileiros e amigos que vivem em Groningen ou na região,
-              que amam futebol e se reúnem uma vez por semana para jogar, socializar e se divertir.
+              <span data-i18n="site_description">Este é um grupo de brasileiros e amigos que vivem em Groningen ou na região, que amam futebol e se reúnem uma vez por semana para jogar, socializar e se divertir.</span>
             </p>
 
             <div class="hero-meta-row">
@@ -38,16 +37,21 @@
         </div>
 
         <div class="header-actions">
-          <a href="/register" class="btn btn-primary">
+          <div class="lang-switcher" id="lang-switcher">
+            <button class="lang-btn active" data-lang="pt" title="Português">🇧🇷</button>
+            <button class="lang-btn" data-lang="en" title="English">🇺🇸</button>
+            <button class="lang-btn" data-lang="es" title="Español">🇪🇸</button>
+          </div>
+          <a href="/register" class="btn btn-primary" data-i18n="btn_register">
             👤 Cadastrar
           </a>
-          <a href="/join" class="btn btn-secondary" id="scroll-signup-btn">
+          <a href="/join" class="btn btn-secondary" id="scroll-signup-btn" data-i18n="btn_join">
             ⚽ Entrar na lista
           </a>
-          <button id="player-login-btn" class="btn btn-secondary" type="button">
+          <button id="player-login-btn" class="btn btn-secondary" type="button" data-i18n="btn_login">
             🔐 Login
           </button>
-          <a id="whatsapp-btn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
+          <a id="whatsapp-btn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer" data-i18n="btn_whatsapp">
             Entrar no grupo WhatsApp
           </a>
           <button id="open-admin-btn" style="display:none" type="button">Admin</button>
@@ -59,48 +63,48 @@
       <section class="hero-section">
         <div class="container hero-grid">
           <div class="hero-card countdown-card">
-            <div class="card-kicker">Próxima pelada</div>
-            <h2 class="card-title">Contagem regressiva</h2>
+            <div class="card-kicker" data-i18n="kicker_next_game">Próxima pelada</div>
+            <h2 class="card-title" data-i18n="title_countdown">Contagem regressiva</h2>
 
             <div class="countdown-grid">
               <div class="countdown-box">
                 <span class="countdown-value" id="cd-d">0</span>
-                <span class="countdown-label">Dias</span>
+                <span class="countdown-label" data-i18n="label_days">Dias</span>
               </div>
               <div class="countdown-box">
                 <span class="countdown-value" id="cd-h">00</span>
-                <span class="countdown-label">Horas</span>
+                <span class="countdown-label" data-i18n="label_hours">Horas</span>
               </div>
               <div class="countdown-box">
                 <span class="countdown-value" id="cd-m">00</span>
-                <span class="countdown-label">Min</span>
+                <span class="countdown-label" data-i18n="label_min">Min</span>
               </div>
             </div>
 
             <div class="game-details">
               <div class="detail-row">
-                <span class="detail-label">Data</span>
+                <span class="detail-label" data-i18n="label_date">Data</span>
                 <span class="detail-value" id="game-date-inline">--</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Chegada</span>
+                <span class="detail-label" data-i18n="label_arrival">Chegada</span>
                 <span class="detail-value" id="arrival-inline">--</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Janela</span>
+                <span class="detail-label" data-i18n="label_window">Janela</span>
                 <span class="detail-value" id="window-inline">--</span>
               </div>
             </div>
           </div>
 
           <div class="hero-card venue-card">
-            <div class="card-kicker">Local</div>
+            <div class="card-kicker" data-i18n="kicker_venue">Local</div>
             <h2 class="card-title" id="venue-name">ACLO Groningen</h2>
             <p class="venue-address" id="venue-address">Blauwborgje 16, 9747 AC Groningen</p>
 
             <div class="hero-actions">
               <a id="maps-link" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
-                Ver no mapa
+                <span data-i18n="btn_map">Ver no mapa</span>
               </a>
               <a id="pay-btn" class="btn btn-primary" href="#" target="_blank" rel="noopener noreferrer">
                 Pagar €4,00
@@ -111,7 +115,7 @@
           </div>
 
           <div class="hero-card progress-card">
-            <div class="card-kicker">Vagas</div>
+            <div class="card-kicker" data-i18n="kicker_slots">Vagas</div>
             <h2 class="card-title"><span id="players-count">0</span>/<span id="max-slots-label">18</span></h2>
 
             <div class="progress-bar">
@@ -119,7 +123,7 @@
             </div>
 
             <div class="progress-caption">
-              <span><strong id="progress-count">0</strong> confirmados</span>
+              <span><strong id="progress-count">0</strong> <span data-i18n="label_confirmed">confirmados</span></span>
             </div>
           </div>
         </div>
@@ -132,8 +136,8 @@
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Jogadores</p>
-              <h2>Lista confirmada</h2>
+              <p class="section-kicker" data-i18n="kicker_players">Jogadores</p>
+              <h2 data-i18n="title_confirmed_list">Lista confirmada</h2>
             </div>
           </div>
 
@@ -159,8 +163,8 @@
           <div class="maps-row">
             <div class="map-card">
               <div class="map-card-header">
-                <p class="section-kicker">Lista do jogo</p>
-                <h3>🗺️ Representação na lista</h3>
+                <p class="section-kicker" data-i18n="kicker_game_list">Lista do jogo</p>
+                <h3 data-i18n="title_map_game">🗺️ Representação na lista</h3>
               </div>
               <div class="brazil-map-wrap">
                 <div class="brazil-map-svg-outer">
@@ -171,8 +175,8 @@
             </div>
             <div class="map-card">
               <div class="map-card-header">
-                <p class="section-kicker">Comunidade</p>
-                <h3>🗺️ Mapa de membros</h3>
+                <p class="section-kicker" data-i18n="kicker_community">Comunidade</p>
+                <h3 data-i18n="title_map_members">🗺️ Mapa de membros</h3>
               </div>
               <div class="brazil-map-wrap">
                 <div class="brazil-map-svg-outer">
@@ -191,17 +195,17 @@
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Comunidade</p>
-              <h2>📸 Galeria</h2>
+              <p class="section-kicker" data-i18n="kicker_community">Comunidade</p>
+              <h2 data-i18n="title_gallery">📸 Galeria</h2>
             </div>
-            <button id="gallery-upload-btn" class="btn btn-primary" type="button">+ Adicionar</button>
+            <button id="gallery-upload-btn" class="btn btn-primary" type="button" data-i18n="btn_add">+ Adicionar</button>
           </div>
 
           <!-- Upload panel -->
           <div id="gallery-upload-panel" class="gallery-upload-panel" style="display:none">
             <div class="gallery-type-tabs">
-              <button class="gallery-type-tab active" data-gtype="photo">📷 Foto</button>
-              <button class="gallery-type-tab" data-gtype="video">🎬 Vídeo</button>
+              <button class="gallery-type-tab active" data-gtype="photo" data-i18n="tab_photo">📷 Foto</button>
+              <button class="gallery-type-tab" data-gtype="video" data-i18n="tab_video">🎬 Vídeo</button>
             </div>
 
             <!-- Photo upload -->
@@ -221,27 +225,27 @@
             <!-- Video URL -->
             <div id="gallery-video-form" class="gallery-form-section" style="display:none">
               <label class="field" style="margin-bottom:0">
-                <span>Link do YouTube ou Instagram</span>
+                <span data-i18n="label_video_link">Link do YouTube ou Instagram</span>
                 <input id="gallery-video-url" type="url" placeholder="https://youtube.com/watch?v=..." style="font-size:16px" />
               </label>
             </div>
 
             <!-- Caption + submit (shared) -->
             <label class="field" style="margin-top:12px;margin-bottom:0">
-              <span>Legenda <small style="font-weight:400;opacity:0.6">(opcional)</small></span>
+              <span data-i18n="label_caption">Legenda</span> <small style="font-weight:400;opacity:0.6" data-i18n="label_optional">(opcional)</small>
               <input id="gallery-caption" type="text" placeholder="Ex: Gol da rodada 🔥" maxlength="300" style="font-size:16px" />
             </label>
             <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-              <button id="gallery-submit-btn" class="btn btn-primary" type="button" disabled>Publicar</button>
-              <button id="gallery-cancel-btn" class="btn btn-secondary" type="button">Cancelar</button>
+              <button id="gallery-submit-btn" class="btn btn-primary" type="button" disabled data-i18n="btn_publish">Publicar</button>
+              <button id="gallery-cancel-btn" class="btn btn-secondary" type="button" data-i18n="btn_cancel">Cancelar</button>
             </div>
             <p id="gallery-upload-feedback" style="margin-top:8px;font-size:0.85rem;min-height:20px"></p>
           </div>
 
           <!-- Grid -->
           <div id="gallery-grid" class="gallery-grid"></div>
-          <p id="gallery-empty" class="empty-state" style="display:none">Ainda não há fotos ou vídeos. Seja o primeiro a publicar! 🎉</p>
-          <p id="gallery-login-hint" class="empty-state" style="display:none">🔐 Faça login para ver e publicar na galeria.</p>
+          <p id="gallery-empty" class="empty-state" style="display:none" data-i18n="gallery_empty">Ainda não há fotos ou vídeos. Seja o primeiro a publicar! 🎉</p>
+          <p id="gallery-login-hint" class="empty-state" style="display:none" data-i18n="gallery_login_hint">🔐 Faça login para ver e publicar na galeria.</p>
         </div>
       </section>
 
@@ -250,22 +254,22 @@
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Estatísticas</p>
-              <h2>Rankings</h2>
+              <p class="section-kicker" data-i18n="kicker_stats">Estatísticas</p>
+              <h2 data-i18n="title_rankings">Rankings</h2>
             </div>
             <div class="ranking-tabs">
-              <button class="ranking-tab active" data-tab="goat">🏆 GOAT</button>
-              <button class="ranking-tab" data-tab="boot">⚽ Chuteira de Ouro</button>
+              <button class="ranking-tab active" data-tab="goat" data-i18n="tab_goat">🏆 GOAT</button>
+              <button class="ranking-tab" data-tab="boot" data-i18n="tab_golden_boot">⚽ Chuteira de Ouro</button>
             </div>
           </div>
 
           <div id="ranking-goat" class="ranking-panel">
-            <div class="ranking-legend">Ratio de minutos jogados por dia (meta: 120 min)</div>
+            <div class="ranking-legend" data-i18n="legend_goat">Ratio de minutos jogados por dia (meta: 120 min)</div>
             <div id="goat-list" class="ranking-list"></div>
           </div>
 
           <div id="ranking-boot" class="ranking-panel hidden">
-            <div class="ranking-legend">Total de gols marcados em todas as partidas</div>
+            <div class="ranking-legend" data-i18n="legend_boot">Total de gols marcados em todas as partidas</div>
             <div id="boot-list" class="ranking-list"></div>
           </div>
         </div>
@@ -284,28 +288,28 @@
         <div class="container">
           <div class="section-header">
             <div>
-              <p class="section-kicker">Organização</p>
-              <h2>Times</h2>
+              <p class="section-kicker" data-i18n="kicker_org">Organização</p>
+              <h2 data-i18n="title_teams">Times</h2>
             </div>
           </div>
 
-          <div id="teams-empty" class="empty-state">
+          <div id="teams-empty" class="empty-state" data-i18n="teams_empty">
             Os times ainda não foram gerados.
           </div>
 
           <div id="teams-grid" class="teams-grid hidden">
             <div class="team-card team-card--vermelho">
-              <div class="team-header team-header--vermelho">🔴 Time Vermelho</div>
+              <div class="team-header team-header--vermelho" data-i18n="team_red">🔴 Time Vermelho</div>
               <div id="team-vermelho" class="team-body"></div>
             </div>
 
             <div class="team-card team-card--amarelo">
-              <div class="team-header team-header--amarelo">🟡 Time Amarelo</div>
+              <div class="team-header team-header--amarelo" data-i18n="team_yellow">🟡 Time Amarelo</div>
               <div id="team-amarelo" class="team-body"></div>
             </div>
 
             <div class="team-card team-card--azul">
-              <div class="team-header team-header--azul">🔵 Time Azul</div>
+              <div class="team-header team-header--azul" data-i18n="team_blue">🔵 Time Azul</div>
               <div id="team-azul" class="team-body"></div>
             </div>
           </div>
