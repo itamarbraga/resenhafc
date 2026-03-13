@@ -602,13 +602,117 @@ function renderBrazilMap(list, svgId, legendId) {
   const legend = $(legendId);
   if (!svg || !legend) return;
 
-  const counts = buildStateCounts(list);
-  const ns     = 'http://www.w3.org/2000/svg';
+  // Build per-state player lists (name + photo)
+  const stateMap = {};
+  (list || []).forEach(item => {
+    const s = item.state || item.s;
+    if (!s) return;
+    if (!stateMap[s]) stateMap[s] = [];
+    stateMap[s].push({ name: item.name || item.n || '', photo: item.photo || item.p || null });
+  });
+  const intlPlayers = (list || []).filter(item => !(item.state || item.s))
+    .map(item => ({ name: item.name || item.n || '', photo: item.photo || item.p || null }));
 
+  const counts = {};
+  Object.entries(stateMap).forEach(([k,v]) => counts[k] = v.length);
+  if (intlPlayers.length) counts['INTL'] = intlPlayers.length;
+
+  const ns = 'http://www.w3.org/2000/svg';
   svg.innerHTML    = '';
   legend.innerHTML = '';
 
-  // SVG background — slightly lighter than page bg so map area is always visible
+  // ── Tooltip element (one shared per map) ──────────────────────────────
+  const tooltipId = svgId + '-tooltip';
+  let tooltip = document.getElementById(tooltipId);
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = tooltipId;
+    tooltip.className = 'map-tooltip';
+    svg.parentElement.style.position = 'relative';
+    svg.parentElement.appendChild(tooltip);
+  }
+  tooltip.style.display = 'none';
+
+  let activeCode = null;
+
+  function showTooltip(code, anchorEl) {
+    const players = code === 'INTL' ? intlPlayers : (stateMap[code] || []);
+    if (!players.length) return;
+    activeCode = code;
+
+    const h = STATE_HUES[code] ?? 200;
+    const color = code === 'INTL' ? '#a78bfa' : `hsla(${h},75%,60%,1)`;
+    const label = code === 'INTL' ? '🌍 Internacional' : `🗺️ ${code}`;
+
+    tooltip.innerHTML = `
+      <div class="map-tooltip-header" style="border-left:3px solid ${color}">
+        <span class="map-tooltip-state">${label}</span>
+        <span class="map-tooltip-count">${players.length} jogador${players.length>1?'es':''}</span>
+      </div>
+      <div class="map-tooltip-players">
+        ${players.map(p => `
+          <div class="map-tooltip-player">
+            ${p.photo
+              ? `<img class="map-tooltip-avatar" src="${p.photo}" alt="${p.name}" />`
+              : `<div class="map-tooltip-avatar-fallback">${(p.name||'?')[0].toUpperCase()}</div>`}
+            <span class="map-tooltip-name">${p.name}</span>
+          </div>`).join('')}
+      </div>`;
+
+    tooltip.style.display = 'block';
+
+    // Position: try to place below/beside the anchor element
+    const svgRect = svg.getBoundingClientRect();
+    const parentRect = svg.parentElement.getBoundingClientRect();
+
+    let top, left;
+    if (anchorEl && anchorEl.getBoundingClientRect) {
+      const r = anchorEl.getBoundingClientRect();
+      top  = r.bottom - parentRect.top + 8;
+      left = r.left   - parentRect.left;
+    } else {
+      top  = svgRect.bottom - parentRect.top + 8;
+      left = 8;
+    }
+
+    // Keep inside parent
+    const tw = tooltip.offsetWidth || 220;
+    const pw = svg.parentElement.offsetWidth;
+    if (left + tw > pw) left = Math.max(0, pw - tw - 8);
+
+    tooltip.style.top  = top + 'px';
+    tooltip.style.left = left + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+    activeCode = null;
+    // Dehighlight all paths
+    svg.querySelectorAll('.map-state--highlighted').forEach(el => {
+      el.classList.remove('map-state--highlighted');
+    });
+    legend.querySelectorAll('.map-legend-item--highlighted').forEach(el => {
+      el.classList.remove('map-legend-item--highlighted');
+    });
+  }
+
+  function highlightState(code) {
+    svg.querySelectorAll('.map-state--highlighted').forEach(el => el.classList.remove('map-state--highlighted'));
+    legend.querySelectorAll('.map-legend-item--highlighted').forEach(el => el.classList.remove('map-legend-item--highlighted'));
+    const pathEl = svg.querySelector(`[data-state="${code}"]`);
+    if (pathEl) pathEl.classList.add('map-state--highlighted');
+    const legEl = legend.querySelector(`[data-legend-state="${code}"]`);
+    if (legEl) legEl.classList.add('map-legend-item--highlighted');
+  }
+
+  // Close tooltip when clicking outside
+  document.addEventListener('click', function onDocClick(e) {
+    if (!svg.contains(e.target) && !legend.contains(e.target) && !tooltip.contains(e.target)) {
+      hideTooltip();
+    }
+  }, { capture: false });
+
+  // ── SVG background ─────────────────────────────────────────────────────
   const bg = document.createElementNS(ns, 'rect');
   bg.setAttribute('width', '520');
   bg.setAttribute('height', '560');
@@ -616,19 +720,13 @@ function renderBrazilMap(list, svgId, legendId) {
   bg.setAttribute('fill', '#0f1f17');
   svg.appendChild(bg);
 
-  // Draw every state
+  // ── Draw every state ───────────────────────────────────────────────────
+  const pathEls = {};
   Object.entries(BRAZIL_PATHS).forEach(([code, d]) => {
     const count = counts[code] || 0;
     const h     = STATE_HUES[code] ?? 200;
-
-    // Empty: clearly visible muted fill on the dark bg
-    // Active: bright unique hue
-    const fill   = count
-      ? `hsla(${h},${Math.min(85,55+count*7)}%,${Math.min(68,46+count*5)}%,1)`
-      : '#1e3829';
-    const stroke = count
-      ? `hsla(${h},70%,80%,0.7)`
-      : '#2d4f3c';
+    const fill  = count ? `hsla(${h},${Math.min(85,55+count*7)}%,${Math.min(68,46+count*5)}%,1)` : '#1e3829';
+    const stroke = count ? `hsla(${h},70%,80%,0.7)` : '#2d4f3c';
 
     const path = document.createElementNS(ns, 'path');
     path.setAttribute('d', d);
@@ -636,9 +734,53 @@ function renderBrazilMap(list, svgId, legendId) {
     path.setAttribute('stroke', stroke);
     path.setAttribute('stroke-width', '1.5');
     path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('data-state', code);
     path.setAttribute('class', count ? 'map-state map-state--active' : 'map-state');
-    if (count) path.setAttribute('data-count', count);
+    if (count) {
+      path.setAttribute('data-count', count);
+      path.style.cursor = 'pointer';
+
+      // Hover: desktop
+      path.addEventListener('mouseenter', (e) => {
+        highlightState(code);
+        showTooltip(code, null);
+        // Position near cursor inside SVG
+        const parentRect = svg.parentElement.getBoundingClientRect();
+        const svgEl = svg.getBoundingClientRect();
+        const ttop = e.clientY - parentRect.top + 12;
+        const tleft = e.clientX - parentRect.left + 12;
+        const tw = tooltip.offsetWidth || 220;
+        const pw = svg.parentElement.offsetWidth;
+        tooltip.style.top  = ttop + 'px';
+        tooltip.style.left = Math.min(tleft, pw - tw - 8) + 'px';
+      });
+      path.addEventListener('mousemove', (e) => {
+        const parentRect = svg.parentElement.getBoundingClientRect();
+        const ttop = e.clientY - parentRect.top + 12;
+        const tleft = e.clientX - parentRect.left + 12;
+        const tw = tooltip.offsetWidth || 220;
+        const pw = svg.parentElement.offsetWidth;
+        tooltip.style.top  = ttop + 'px';
+        tooltip.style.left = Math.min(tleft, pw - tw - 8) + 'px';
+      });
+      path.addEventListener('mouseleave', () => {
+        if (activeCode === code) hideTooltip();
+      });
+
+      // Click: mobile-friendly toggle
+      path.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (activeCode === code) { hideTooltip(); return; }
+        highlightState(code);
+        showTooltip(code, null);
+        const parentRect = svg.parentElement.getBoundingClientRect();
+        const r = path.getBoundingClientRect();
+        tooltip.style.top  = (r.bottom - parentRect.top + 8) + 'px';
+        tooltip.style.left = Math.max(0, (r.left + r.right)/2 - parentRect.left - 110) + 'px';
+      });
+    }
     svg.appendChild(path);
+    pathEls[code] = path;
 
     // State code label
     const [cx, cy] = BRAZIL_CENTROIDS[code];
@@ -654,7 +796,7 @@ function renderBrazilMap(list, svgId, legendId) {
     svg.appendChild(label);
   });
 
-  // Legend — only populated states
+  // ── Legend ──────────────────────────────────────────────────────────────
   const active = Object.entries(counts)
     .filter(([k]) => k !== 'INTL')
     .sort((a, b) => b[1] - a[1]);
@@ -665,19 +807,37 @@ function renderBrazilMap(list, svgId, legendId) {
     return;
   }
 
-  active.forEach(([code, n]) => {
-    const h   = STATE_HUES[code] ?? 200;
+  function makeLegendItem(code, n, color) {
     const div = document.createElement('div');
     div.className = 'map-legend-item';
-    div.innerHTML = `<span class="map-legend-dot" style="background:hsla(${h},75%,60%,1)"></span><span class="map-legend-code">${code}</span><span class="map-legend-count">${n}</span>`;
-    legend.appendChild(div);
-  });
+    div.setAttribute('data-legend-state', code);
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.style.cursor = 'pointer';
+    div.innerHTML = `<span class="map-legend-dot" style="background:${color}"></span><span class="map-legend-code">${code === 'INTL' ? '🌍 Intl' : code}</span><span class="map-legend-count">${n}</span>`;
 
+    div.addEventListener('mouseenter', () => {
+      highlightState(code);
+      showTooltip(code, div);
+    });
+    div.addEventListener('mouseleave', () => {
+      if (activeCode === code) hideTooltip();
+    });
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCode === code) { hideTooltip(); return; }
+      highlightState(code);
+      showTooltip(code, div);
+    });
+    return div;
+  }
+
+  active.forEach(([code, n]) => {
+    const h = STATE_HUES[code] ?? 200;
+    legend.appendChild(makeLegendItem(code, n, `hsla(${h},75%,60%,1)`));
+  });
   if (intlCount) {
-    const div = document.createElement('div');
-    div.className = 'map-legend-item';
-    div.innerHTML = `<span class="map-legend-dot" style="background:#a78bfa"></span><span class="map-legend-code">🌍 Intl</span><span class="map-legend-count">${intlCount}</span>`;
-    legend.appendChild(div);
+    legend.appendChild(makeLegendItem('INTL', intlCount, '#a78bfa'));
   }
 }
 
