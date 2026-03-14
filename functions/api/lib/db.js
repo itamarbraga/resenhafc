@@ -475,7 +475,7 @@ export async function getPlayerByUsername(env, username) {
 }
 
 export async function listPlayers(env, status = null) {
-  let query = 'SELECT id, first_name, last_name, username, phone, state, photo_data, status, created_at FROM players';
+  let query = 'SELECT id, first_name, last_name, username, phone, state, photo_data, skill_rating, status, created_at FROM players';
   const binds = [];
   if (status) { query += ' WHERE status = ?1'; binds.push(status); }
   query += ' ORDER BY first_name ASC, last_name ASC';
