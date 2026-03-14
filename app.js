@@ -1880,16 +1880,77 @@ async function saveConfig(event) {
 }
 
 
-function starsHtml(playerId, rating) {
-  const r = rating ?? 0;
-  return `<div class="star-group inline-stars">
-    ${[1,2,3,4,5].map(n =>
-      `<button type="button" class="star-btn${n <= r ? ' star-btn--on' : ''}"
-               data-player-id="${playerId}" data-val="${n}" title="${n}★">★</button>`
-    ).join('')}
-    <button type="button" class="star-clear-btn" data-player-id="${playerId}"
-            style="${r ? '' : 'visibility:hidden'}" title="Limpar">✕</button>
-  </div>`;
+function buildStarWidget(playerId, initialRating, onSave) {
+  // Returns a <div> with interactive stars — no event delegation, direct handlers
+  const wrap = document.createElement('div');
+  wrap.className = 'player-rating-row';
+
+  const label = document.createElement('span');
+  label.className = 'player-rating-label';
+  label.textContent = 'Nível:';
+  wrap.appendChild(label);
+
+  const stars = document.createElement('div');
+  stars.className = 'star-group inline-stars';
+
+  let current = initialRating ?? 0;
+
+  function refresh() {
+    stars.querySelectorAll('.star-btn').forEach(b =>
+      b.classList.toggle('star-btn--on', Number(b.dataset.val) <= current)
+    );
+    const clr = stars.querySelector('.star-clear-btn');
+    if (clr) clr.style.visibility = current ? 'visible' : 'hidden';
+  }
+
+  for (let n = 1; n <= 5; n++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'star-btn' + (n <= current ? ' star-btn--on' : '');
+    btn.dataset.val = n;
+    btn.title = `${n}★`;
+    btn.textContent = '★';
+    btn.addEventListener('click', async () => {
+      const next = current === n ? null : n;   // toggle off if same star
+      current = next ?? 0;
+      refresh();
+      await onSave(next);
+    });
+    stars.appendChild(btn);
+  }
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'star-clear-btn';
+  clearBtn.title = 'Limpar';
+  clearBtn.textContent = '✕';
+  clearBtn.style.visibility = current ? 'visible' : 'hidden';
+  clearBtn.addEventListener('click', async () => {
+    current = 0;
+    refresh();
+    await onSave(null);
+  });
+  stars.appendChild(clearBtn);
+
+  wrap.appendChild(stars);
+
+  // Feedback badge
+  const badge = document.createElement('span');
+  badge.className = 'rating-saved-badge';
+  badge.textContent = '✓ salvo';
+  badge.style.display = 'none';
+  wrap.appendChild(badge);
+
+  // Expose showFeedback for onSave callback
+  wrap._showFeedback = (ok) => {
+    badge.textContent = ok ? '✓ salvo' : '⚠ erro';
+    badge.style.color = ok ? 'var(--green)' : 'var(--yellow)';
+    badge.style.display = 'inline';
+    clearTimeout(wrap._fbTimer);
+    wrap._fbTimer = setTimeout(() => { badge.style.display = 'none'; }, 1800);
+  };
+
+  return wrap;
 }
 
 function renderAllPlayersTable(players) {
@@ -1899,9 +1960,15 @@ function renderAllPlayersTable(players) {
     container.innerHTML = '<div class="empty-state">Nenhum membro cadastrado.</div>';
     return;
   }
+
+  container.innerHTML = '';
   const sorted = players.slice().sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt'));
-  container.innerHTML = sorted.map(p => `
-    <div class="admin-item admin-item-members" data-player-id="${p.id}">
+
+  sorted.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'admin-item admin-item-members';
+    item.dataset.playerId = p.id;
+    item.innerHTML = `
       <div class="admin-item-profile">
         ${p.photoData
           ? `<img class="admin-player-avatar" src="${p.photoData}" alt="${escapeHtml(p.fullName)}" />`
@@ -1915,68 +1982,37 @@ function renderAllPlayersTable(players) {
             <span class="admin-meta-chip">📅 ${escapeHtml(p.createdAtLabel || '—')}</span>
             <span class="admin-meta-chip status-chip status-${p.status}">${p.status === 'approved' ? '✅ aprovado' : p.status === 'pending' ? '⏳ pendente' : '❌ ' + p.status}</span>
           </div>
-          <div class="player-rating-row">
-            <span class="player-rating-label">Nível:</span>
-            ${starsHtml(p.id, p.skillRating)}
-          </div>
         </div>
       </div>
       <div class="row-actions">
         <button class="btn btn-secondary btn-sm" data-reset-pw-id="${p.id}" data-reset-pw-name="${escapeHtml(p.fullName)}">🔑 Resetar senha</button>
-      </div>
-    </div>
-  `).join('');
+      </div>`;
 
-  // Star handler — attach once via flag
-  if (container._ratingBound) return;
-  container._ratingBound = true;
-  container.addEventListener('click', async (e) => {
-    const starBtn  = e.target.closest('.star-btn');
-    const clearBtn = e.target.closest('.star-clear-btn');
-    if (!starBtn && !clearBtn) return;
-
-    const playerId = Number((starBtn || clearBtn).dataset.playerId);
-    if (!playerId) return;
-    const val = starBtn ? Number(starBtn.dataset.val) : null;
-
-    // Toggle off same star
-    const row = container.querySelector(`[data-player-id="${playerId}"] .inline-stars`);
-    const currentOn = row?.querySelectorAll('.star-btn--on').length ?? 0;
-    const finalVal = (starBtn && currentOn === val) ? null : val;
-
-    // Optimistic UI
-    if (row) {
-      row.querySelectorAll('.star-btn').forEach(b =>
-        b.classList.toggle('star-btn--on', finalVal !== null && Number(b.dataset.val) <= finalVal)
-      );
-      const clr = row.querySelector('.star-clear-btn');
-      if (clr) clr.style.visibility = finalVal ? 'visible' : 'hidden';
-    }
-
-    try {
-      await request('/api/admin/rating', {
-        method: 'PATCH',
-        body: JSON.stringify({ playerId, rating: finalVal }),
-      });
-      // Patch local cache so teams algorithm picks it up without full reload
-      if (state.adminData?.approvedPlayers) {
-        const p = state.adminData.approvedPlayers.find(x => x.id === playerId);
-        if (p) p.skillRating = finalVal;
+    // Inject star widget into .admin-member-info
+    const info = item.querySelector('.admin-member-info');
+    const starWidget = buildStarWidget(p.id, p.skillRating, async (newVal) => {
+      try {
+        await request('/api/admin/rating', {
+          method: 'PATCH',
+          body: JSON.stringify({ playerId: p.id, rating: newVal }),
+        });
+        starWidget._showFeedback(true);
+        // Patch local cache
+        [
+          ...(state.adminData?.approvedPlayers || []),
+          ...(state.adminData?.pendingPlayers  || []),
+        ].filter(x => x.id === p.id).forEach(x => { x.skillRating = newVal; });
+        (state.adminData?.members || [])
+          .filter(m => m.playerId === p.id)
+          .forEach(m => { m.skillRating = newVal; });
+      } catch (err) {
+        starWidget._showFeedback(false);
+        console.error('Rating save failed:', err.message);
       }
-      if (state.adminData?.pendingPlayers) {
-        const p = state.adminData.pendingPlayers.find(x => x.id === playerId);
-        if (p) p.skillRating = finalVal;
-      }
-      // Also patch members list (confirmed members carry skillRating from player JOIN)
-      if (state.adminData?.members) {
-        state.adminData.members
-          .filter(m => m.playerId === playerId)
-          .forEach(m => { m.skillRating = finalVal; });
-      }
-    } catch (err) {
-      console.error('Rating save failed:', err.message);
-      await loadAdminState(); // revert on error
-    }
+    });
+    info.appendChild(starWidget);
+
+    container.appendChild(item);
   });
 }
 
