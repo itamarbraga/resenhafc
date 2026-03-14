@@ -89,10 +89,8 @@ async function _runInit(env) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      photo_data TEXT, player_id INTEGER, payment_proof TEXT,
-      skill_rating INTEGER DEFAULT NULL
+      photo_data TEXT, player_id INTEGER, payment_proof TEXT
     )`).run(),
-    env.DB.prepare('ALTER TABLE members ADD COLUMN skill_rating INTEGER DEFAULT NULL').run().catch(() => {}),
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS sponsors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL, subtitle TEXT NOT NULL, url TEXT NOT NULL,
@@ -115,8 +113,10 @@ async function _runInit(env) {
       password_salt TEXT NOT NULL DEFAULT '', phone TEXT,
       state TEXT NOT NULL, photo_data TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      skill_rating INTEGER DEFAULT NULL
     )`).run(),
+    env.DB.prepare('ALTER TABLE players ADD COLUMN skill_rating INTEGER DEFAULT NULL').run().catch(() => {}),
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS game_days (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       game_date TEXT NOT NULL, notes TEXT,
@@ -217,7 +217,7 @@ export async function listMembers(env, status = null) {
   let query = `
     SELECT m.id, m.name, m.status, m.created_at, m.player_id,
            COALESCE(p.photo_data, m.photo_data) AS photo_data,
-           p.first_name, p.last_name, p.state, p.phone
+           p.first_name, p.last_name, p.state, p.phone, p.skill_rating
     FROM members m
     LEFT JOIN players p ON m.player_id = p.id
   `;
@@ -250,7 +250,7 @@ export async function listMembers(env, status = null) {
     lastName: row.last_name || null,
     state: row.state || null,
     phone: row.phone || null,
-    skillRating: row.skill_rating ?? null,
+    skillRating: row.skill_rating ?? null,  // from players table
   }));
 }
 
@@ -258,9 +258,8 @@ export async function listMembers(env, status = null) {
 export async function listMembersAdmin(env, status = null) {
   let query = `
     SELECT m.id, m.name, m.status, m.created_at, m.player_id, m.payment_proof,
-           m.skill_rating,
            COALESCE(p.photo_data, m.photo_data) AS photo_data,
-           p.first_name, p.last_name, p.state, p.phone
+           p.first_name, p.last_name, p.state, p.phone, p.skill_rating
     FROM members m
     LEFT JOIN players p ON m.player_id = p.id
   `;
@@ -491,6 +490,7 @@ export async function listPlayers(env, status = null) {
     phone: r.phone || '',
     state: r.state,
     photoData: r.photo_data || null,
+    skillRating: r.skill_rating ?? null,
     status: r.status,
     createdAt: r.created_at,
     createdAtLabel: prettyCreatedAt(r.created_at),
@@ -533,7 +533,7 @@ export async function playerExists(env, firstName, lastName) {
 
 async function listPlayersNoPhoto(env, status) {
   // Like listPlayers but omits photo_data — used in public state to keep response small
-  let query = 'SELECT id, first_name, last_name, username, phone, state, status, created_at FROM players';
+  let query = 'SELECT id, first_name, last_name, username, phone, state, status, skill_rating, created_at FROM players';
   const binds = [];
   if (status) { query += ' WHERE status = ?1'; binds.push(status); }
   query += ' ORDER BY first_name ASC, last_name ASC';
@@ -548,16 +548,17 @@ async function listPlayersNoPhoto(env, status) {
     phone: r.phone || '',
     state: r.state,
     photoData: null,   // omitted in public state — fetched by admin separately
+    skillRating: r.skill_rating ?? null,
     status: r.status,
     createdAt: r.created_at,
     createdAtLabel: prettyCreatedAt(r.created_at),
   }));
 }
 
-export async function updateMemberRating(env, memberId, rating) {
+export async function updatePlayerRating(env, playerId, rating) {
   await env.DB
-    .prepare('UPDATE members SET skill_rating = ?1 WHERE id = ?2')
-    .bind(rating, memberId)
+    .prepare('UPDATE players SET skill_rating = ?1 WHERE id = ?2')
+    .bind(rating, playerId)
     .run();
 }
 

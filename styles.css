@@ -2659,3 +2659,34 @@ body,
   transition: background 0.15s;
 }
 .photo-lightbox-close:hover { background: rgba(255,255,255,0.25); }
+
+/* ── Inline player rating row ────────────────────────────────────────────── */
+.player-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.player-rating-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.inline-stars {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.inline-stars .star-btn {
+  font-size: 1.1rem;
+  padding: 1px 2px;
+}
+
+.inline-stars .star-clear-btn {
+  font-size: 0.7rem;
+  padding: 1px 3px;
+  margin-left: 2px;
+}
