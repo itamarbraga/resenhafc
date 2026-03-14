@@ -89,8 +89,10 @@ async function _runInit(env) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      photo_data TEXT, player_id INTEGER, payment_proof TEXT
+      photo_data TEXT, player_id INTEGER, payment_proof TEXT,
+      skill_rating INTEGER DEFAULT NULL
     )`).run(),
+    env.DB.prepare('ALTER TABLE members ADD COLUMN skill_rating INTEGER DEFAULT NULL').run().catch(() => {}),
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS sponsors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL, subtitle TEXT NOT NULL, url TEXT NOT NULL,
@@ -248,6 +250,7 @@ export async function listMembers(env, status = null) {
     lastName: row.last_name || null,
     state: row.state || null,
     phone: row.phone || null,
+    skillRating: row.skill_rating ?? null,
   }));
 }
 
@@ -255,6 +258,7 @@ export async function listMembers(env, status = null) {
 export async function listMembersAdmin(env, status = null) {
   let query = `
     SELECT m.id, m.name, m.status, m.created_at, m.player_id, m.payment_proof,
+           m.skill_rating,
            COALESCE(p.photo_data, m.photo_data) AS photo_data,
            p.first_name, p.last_name, p.state, p.phone
     FROM members m
@@ -548,6 +552,13 @@ async function listPlayersNoPhoto(env, status) {
     createdAt: r.created_at,
     createdAtLabel: prettyCreatedAt(r.created_at),
   }));
+}
+
+export async function updateMemberRating(env, memberId, rating) {
+  await env.DB
+    .prepare('UPDATE members SET skill_rating = ?1 WHERE id = ?2')
+    .bind(rating, memberId)
+    .run();
 }
 
 export async function buildPublicState(env) {

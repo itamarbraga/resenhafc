@@ -861,6 +861,38 @@ function renderMaps(members, approvedPlayers) {
 }
 
 
+// ── Photo lightbox ────────────────────────────────────────────────────────────
+function openPhotoLightbox(src, name) {
+  let lb = document.getElementById('photo-lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'photo-lightbox';
+    lb.className = 'photo-lightbox';
+    lb.innerHTML = `
+      <div class="photo-lightbox-backdrop"></div>
+      <div class="photo-lightbox-content">
+        <img class="photo-lightbox-img" src="" alt="" />
+        <div class="photo-lightbox-name"></div>
+        <button class="photo-lightbox-close" aria-label="Fechar">✕</button>
+      </div>`;
+    document.body.appendChild(lb);
+    lb.querySelector('.photo-lightbox-backdrop').addEventListener('click', closePhotoLightbox);
+    lb.querySelector('.photo-lightbox-close').addEventListener('click', closePhotoLightbox);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePhotoLightbox(); });
+  }
+  lb.querySelector('.photo-lightbox-img').src = src;
+  lb.querySelector('.photo-lightbox-img').alt = name;
+  lb.querySelector('.photo-lightbox-name').textContent = name;
+  lb.classList.add('photo-lightbox--open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePhotoLightbox() {
+  const lb = document.getElementById('photo-lightbox');
+  if (lb) lb.classList.remove('photo-lightbox--open');
+  document.body.style.overflow = '';
+}
+
 function renderConfirmed(members, maxSlots) {
   const container = $('confirmed-list');
   container.innerHTML = '';
@@ -876,6 +908,7 @@ function renderConfirmed(members, maxSlots) {
     node.querySelector('.confirmed-index').textContent = String(index + 1);
     node.querySelector('.confirmed-name').textContent = member.name;
 
+    const avatarWrap = node.querySelector('.confirmed-avatar-wrap');
     const avatarImg = node.querySelector('.confirmed-avatar');
     const avatarFallback = node.querySelector('.confirmed-avatar-fallback');
     if (member.photoData) {
@@ -883,6 +916,10 @@ function renderConfirmed(members, maxSlots) {
       avatarImg.alt = member.name;
       avatarImg.style.display = 'block';
       avatarFallback.style.display = 'none';
+      // Make avatar clickable
+      avatarWrap.classList.add('confirmed-avatar-wrap--zoomable');
+      avatarWrap.title = member.name;
+      avatarWrap.addEventListener('click', () => openPhotoLightbox(member.photoData, member.name));
     } else {
       avatarImg.style.display = 'none';
       avatarFallback.style.display = 'flex';
@@ -1688,6 +1725,7 @@ function renderAdmin() {
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
   renderAdminGameResults(data.members || [], data.gameDays || []);
+  renderSkillRating(data.members || []);
 }
 
 function renderPendingPlayers(items) {
@@ -1840,6 +1878,79 @@ async function saveConfig(event) {
   } catch (error) {
     feedback.textContent = error.message;
   }
+}
+
+// ── Skill rating ──────────────────────────────────────────────────────────────
+
+function renderSkillRating(members) {
+  const container = $('skill-rating-list');
+  if (!container) return;
+  const confirmed = (members || []).filter(m => m.status === 'confirmed');
+  if (!confirmed.length) {
+    container.innerHTML = '<div class="empty-state">Nenhum jogador confirmado na lista.</div>';
+    return;
+  }
+
+  container.innerHTML = confirmed.map(m => {
+    const r = m.skillRating ?? 0;
+    const stars = [1,2,3,4,5].map(n => `
+      <button type="button" class="star-btn${n <= r ? ' star-btn--on' : ''}"
+              data-member="${m.id}" data-val="${n}" title="${n}★">★</button>`).join('');
+    const photoHtml = m.photoData
+      ? `<img class="skill-avatar" src="${m.photoData}" alt="${escapeHtml(m.name)}" />`
+      : `<div class="skill-avatar skill-avatar--fallback">${escapeHtml(m.name[0].toUpperCase())}</div>`;
+    return `
+      <div class="skill-row" id="skill-row-${m.id}">
+        ${photoHtml}
+        <span class="skill-name">${escapeHtml(m.name)}</span>
+        <div class="star-group">${stars}</div>
+        ${r ? `<button type="button" class="star-clear-btn" data-member="${m.id}" title="Limpar">✕</button>` : `<span class="star-clear-btn" style="visibility:hidden">✕</span>`}
+      </div>`;
+  }).join('');
+
+  // Star click handler — attach only once
+  if (container._ratingBound) return;
+  container._ratingBound = true;
+  container.addEventListener('click', async (e) => {
+    const starBtn = e.target.closest('.star-btn');
+    const clearBtn = e.target.closest('.star-clear-btn');
+    if (!starBtn && !clearBtn) return;
+
+    const memberId = Number((starBtn || clearBtn).dataset.member);
+    const val = starBtn ? Number(starBtn.dataset.val) : null;
+    const fb = $('skill-rating-feedback');
+
+    // Toggle off if clicking same star
+    const row = document.getElementById(`skill-row-${memberId}`);
+    const currentOn = row?.querySelectorAll('.star-btn--on').length ?? 0;
+    const finalVal = (starBtn && currentOn === val) ? null : val;
+
+    // Optimistic UI update
+    if (row) {
+      row.querySelectorAll('.star-btn').forEach(b => {
+        b.classList.toggle('star-btn--on', finalVal !== null && Number(b.dataset.val) <= finalVal);
+      });
+      const clr = row.querySelector('.star-clear-btn');
+      if (clr) clr.style.visibility = finalVal ? 'visible' : 'hidden';
+    }
+
+    try {
+      await request('/api/admin/rating', {
+        method: 'PATCH',
+        body: JSON.stringify({ memberId, rating: finalVal }),
+      });
+      fb.textContent = '';
+      // Update local adminData so generateTeams re-render picks it up
+      if (state.adminData?.members) {
+        const m = state.adminData.members.find(x => x.id === memberId);
+        if (m) m.skillRating = finalVal;
+      }
+    } catch (err) {
+      fb.textContent = err.message;
+      // Revert optimistic update
+      await loadAdminState();
+    }
+  });
 }
 
 function renderAllPlayersTable(players) {
