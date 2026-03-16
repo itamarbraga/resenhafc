@@ -648,9 +648,17 @@ export async function buildStats(env) {
     env.DB.prepare(`SELECT player_name, SUM(goals) AS total_goals
                     FROM player_goals GROUP BY lower(player_name)
                     ORDER BY total_goals DESC`).all(),
-    env.DB.prepare(`SELECT m.name, COALESCE(p.photo_data, m.photo_data) AS photo_data
-                    FROM members m LEFT JOIN players p ON m.player_id = p.id
-                    WHERE m.status = ?1`).bind('confirmed').all(),
+    // All members (any status) + all approved players — widest possible photo pool for rankings
+    env.DB.prepare(`
+      SELECT name, photo_data FROM (
+        SELECT m.name, COALESCE(p.photo_data, m.photo_data) AS photo_data
+        FROM members m LEFT JOIN players p ON m.player_id = p.id
+        WHERE m.photo_data IS NOT NULL OR p.photo_data IS NOT NULL
+        UNION
+        SELECT (first_name || ' ' || last_name) AS name, photo_data
+        FROM players WHERE status = 'approved' AND photo_data IS NOT NULL
+      )
+    `).all(),
   ]);
   const totalDays = Number(dayCountRow?.count || 0);
   const totalPossibleMinutes = totalDays * 120;

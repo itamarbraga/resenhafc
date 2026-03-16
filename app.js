@@ -2256,9 +2256,11 @@ function avatarHtml(player, size = 40) {
 }
 
 function renderMvp(ranking) {
-  const podium  = $('mvp-podium');
-  const restEl  = $('mvp-list');
+  const podium = $('mvp-podium');
+  const restEl = $('mvp-list');
   if (!podium || !restEl) return;
+
+  restEl.innerHTML = '';
 
   if (!ranking.length) {
     podium.innerHTML = '';
@@ -2266,49 +2268,35 @@ function renderMvp(ranking) {
     return;
   }
 
-  // ── Podium (top 3) ─────────────────────────────────────────────────────
-  const top3 = ranking.slice(0, 3);
-  // Display order: 2nd | 1st | 3rd
-  const podiumOrder = top3.length === 1 ? [top3[0]] :
-                      top3.length === 2 ? [top3[1], top3[0]] :
-                      [top3[1], top3[0], top3[2]];
-  const podiumPos   = top3.length === 1 ? [1] :
-                      top3.length === 2 ? [2, 1] :
-                      [2, 1, 3];
-  const podiumHeight = [null, '130px', '100px', '80px'];
-  const crownEmoji   = ['', '👑', '', ''];
+  // Visual order for 5-place podium: 4th | 2nd | 1st | 3rd | 5th
+  // Heights step down from center outward
+  const cfg = [
+    { rank: 4, height: 60,  medal: '4',  crown: false },
+    { rank: 2, height: 100, medal: '🥈', crown: false },
+    { rank: 1, height: 140, medal: '🥇', crown: true  },
+    { rank: 3, height: 80,  medal: '🥉', crown: false },
+    { rank: 5, height: 50,  medal: '5',  crown: false },
+  ];
 
-  podium.innerHTML = podiumOrder.map((p, idx) => {
-    const pos    = podiumPos[idx];
-    const medal  = pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉';
-    const crown  = crownEmoji[pos];
-    const height = podiumHeight[pos];
+  const slots = cfg.filter(c => c.rank <= ranking.length);
+
+  podium.innerHTML = slots.map(c => {
+    const p = ranking[c.rank - 1];
     const photoEl = p.photo
       ? `<img class="mvp-avatar" src="${p.photo}" alt="${escapeHtml(p.name)}" />`
       : `<div class="mvp-avatar mvp-avatar-fallback">${escapeHtml(p.name.charAt(0).toUpperCase())}</div>`;
+    const score = p.mvpScore ?? p.score ?? 0;
     return `
-      <div class="mvp-podium-slot mvp-podium-slot--${pos}">
-        ${crown ? `<div class="mvp-crown">${crown}</div>` : ''}
+      <div class="mvp-podium-slot mvp-podium-slot--${c.rank}">
+        ${c.crown ? '<div class="mvp-crown">👑</div>' : ''}
         ${photoEl}
         <div class="mvp-podium-name">${escapeHtml(p.name.split(' ')[0])}</div>
-        <div class="mvp-podium-score">${p.mvpScore}%</div>
-        <div class="mvp-podium-base" style="height:${height}">${medal}</div>
+        <div class="mvp-podium-score">${score}pts</div>
+        <div class="mvp-podium-base" style="height:${c.height}px">
+          <span class="mvp-pos-medal">${c.medal}</span>
+        </div>
       </div>`;
   }).join('');
-
-  // ── 4th & 5th ──────────────────────────────────────────────────────────
-  const rest = ranking.slice(3);
-  if (!rest.length) { restEl.innerHTML = ''; return; }
-  restEl.innerHTML = rest.map((p, i) => `
-    <div class="rank-item">
-      <div class="rank-medal">${i + 4}.</div>
-      ${avatarHtml(p)}
-      <div class="rank-info">
-        <div class="rank-name">${escapeHtml(p.name)}</div>
-        <div class="rank-meta">${p.ratio}% presença · ${p.totalGoals} gol${p.totalGoals !== 1 ? 's' : ''}</div>
-      </div>
-      <div class="rank-value">${p.mvpScore}%</div>
-    </div>`).join('');
 }
 
 function renderGoat(ranking, totalDays) {
