@@ -2381,21 +2381,182 @@ function renderAdminGameResults(members, gameDays) {
 function renderGameDayHistory(gameDays) {
   const container = $('gr-history');
   if (!container) return;
-  if (!gameDays.length) {
-    container.innerHTML = '';
-    return;
-  }
-  container.innerHTML = `
-    <h4 class="top-gap">Histórico de jogos</h4>
-    ${gameDays.map((d) => `
-      <div class="admin-item">
-        <div><div class="name">${d.game_date}</div></div>
+  if (!gameDays.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = `<h4 class="top-gap">Histórico de jogos</h4>`;
+
+  gameDays.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'gr-history-item';
+    item.dataset.id = d.id;
+    item.innerHTML = `
+      <div class="gr-history-header">
+        <div class="gr-history-date">
+          <span class="gr-history-chevron">▶</span>
+          📅 ${d.game_date}
+        </div>
         <div class="row-actions">
           <button class="btn btn-danger btn-sm" data-delete-gameday="${d.id}">Remover</button>
         </div>
       </div>
-    `).join('')}
-  `;
+      <div class="gr-history-body" style="display:none">
+        <div class="gr-history-loading">Carregando…</div>
+      </div>`;
+
+    // Toggle expand on header click
+    item.querySelector('.gr-history-header').addEventListener('click', (e) => {
+      if (e.target.closest('.btn-danger')) return; // don't expand on delete click
+      toggleHistoryItem(item);
+    });
+
+    container.appendChild(item);
+  });
+}
+
+async function toggleHistoryItem(item) {
+  const body = item.querySelector('.gr-history-body');
+  const chevron = item.querySelector('.gr-history-chevron');
+  const isOpen = body.style.display !== 'none';
+
+  if (isOpen) {
+    body.style.display = 'none';
+    chevron.textContent = '▶';
+    item.classList.remove('gr-history-item--open');
+    return;
+  }
+
+  body.style.display = 'block';
+  chevron.textContent = '▼';
+  item.classList.add('gr-history-item--open');
+
+  // Load details if not already loaded
+  if (body.dataset.loaded) return;
+  body.dataset.loaded = '1';
+
+  try {
+    const res = await request(`/api/admin/game-results?id=${item.dataset.id}`);
+    renderHistoryEdit(body, res.day);
+  } catch (err) {
+    body.innerHTML = `<p style="color:var(--yellow);font-size:0.85rem">Erro ao carregar: ${err.message}</p>`;
+  }
+}
+
+function renderHistoryEdit(container, day) {
+  const teams = ['Vermelho', 'Amarelo', 'Azul'];
+
+  const teamHtml = teams.map(t => {
+    const wins = day.teamResults?.[t]?.wins ?? 0;
+    return `
+      <div class="gr-edit-team">
+        <label class="gr-edit-team-label">${t === 'Vermelho' ? '🔴' : t === 'Amarelo' ? '🟡' : '🔵'} ${t}</label>
+        <div class="gr-edit-wins-row">
+          <span style="font-size:0.8rem;color:var(--muted)">Vitórias:</span>
+          <input type="number" min="0" max="30" value="${wins}"
+                 class="gr-edit-wins" data-team="${t}"
+                 style="width:60px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem" />
+        </div>
+      </div>`;
+  }).join('');
+
+  const goalsHtml = day.playerGoals?.length
+    ? day.playerGoals.map(g => `
+        <div class="gr-edit-goal-row">
+          <span class="gr-edit-goal-name">${escapeHtml(g.name)}</span>
+          <div class="gr-goal-counter">
+            <button type="button" class="gr-count-btn" data-action="dec" data-edit-name="${escapeHtml(g.name)}">−</button>
+            <span class="gr-count-val" id="edit-goals-${g.name.replace(/\s/g,'_')}">${g.goals}</span>
+            <button type="button" class="gr-count-btn" data-action="inc" data-edit-name="${escapeHtml(g.name)}">+</button>
+          </div>
+        </div>`).join('')
+    : '<p style="font-size:0.82rem;color:var(--muted)">Nenhum gol registrado nessa rodada.</p>';
+
+  // Also show a way to add a goal to a player not listed
+  container.innerHTML = `
+    <div class="gr-edit-section">
+      <div class="gr-edit-teams-row">${teamHtml}</div>
+    </div>
+    <div class="gr-edit-section">
+      <p style="font-size:0.82rem;font-weight:600;margin-bottom:8px">⚽ Gols</p>
+      <div class="gr-edit-goals-list">${goalsHtml}</div>
+      <div class="gr-edit-add-goal" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="edit-add-goal-name-${day.id}" type="text" placeholder="Nome do jogador…" maxlength="60"
+               style="flex:1;min-width:140px;padding:7px 10px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem" />
+        <button type="button" class="btn btn-secondary btn-sm gr-edit-add-goal-btn" data-day="${day.id}">+ Adicionar jogador</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary btn-sm gr-edit-save-btn" data-day="${day.id}">💾 Salvar alterações</button>
+    </div>
+    <p class="gr-edit-feedback form-feedback" style="min-height:18px"></p>`;
+
+  // Goal counter handler
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('.gr-count-btn');
+    if (!btn || !btn.dataset.editName) return;
+    const name = btn.dataset.editName;
+    const el = container.querySelector(`#edit-goals-${name.replace(/\s/g,'_')}`);
+    if (!el) return;
+    const cur = Number(el.textContent);
+    el.textContent = Math.max(0, cur + (btn.dataset.action === 'inc' ? 1 : -1));
+  });
+
+  // Add player to goals list
+  container.querySelector('.gr-edit-add-goal-btn').addEventListener('click', () => {
+    const input = container.querySelector(`#edit-add-goal-name-${day.id}`);
+    const name = input.value.trim();
+    if (!name) return;
+    const safeId = `edit-goals-${name.replace(/\s/g,'_')}`;
+    if (container.querySelector(`#${safeId}`)) { input.value = ''; return; }
+
+    const row = document.createElement('div');
+    row.className = 'gr-edit-goal-row';
+    row.innerHTML = `
+      <span class="gr-edit-goal-name">${escapeHtml(name)}</span>
+      <div class="gr-goal-counter">
+        <button type="button" class="gr-count-btn" data-action="dec" data-edit-name="${escapeHtml(name)}">−</button>
+        <span class="gr-count-val" id="${safeId}">0</span>
+        <button type="button" class="gr-count-btn" data-action="inc" data-edit-name="${escapeHtml(name)}">+</button>
+      </div>`;
+    container.querySelector('.gr-edit-goals-list').appendChild(row);
+    input.value = '';
+  });
+
+  // Save handler
+  container.querySelector('.gr-edit-save-btn').addEventListener('click', async () => {
+    const fb = container.querySelector('.gr-edit-feedback');
+    const btn = container.querySelector('.gr-edit-save-btn');
+    fb.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    const teamResults = {};
+    container.querySelectorAll('.gr-edit-wins').forEach(inp => {
+      teamResults[inp.dataset.team] = { wins: Number(inp.value) || 0 };
+    });
+
+    const playerGoals = [];
+    container.querySelectorAll('.gr-edit-goal-row').forEach(row => {
+      const name = row.querySelector('.gr-edit-goal-name').textContent;
+      const goals = Number(row.querySelector('.gr-count-val').textContent) || 0;
+      if (goals > 0) playerGoals.push({ name, goals });
+    });
+
+    try {
+      await request('/api/admin/game-results', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: Number(day.id), teamResults, playerGoals }),
+      });
+      fb.style.color = 'var(--green)';
+      fb.textContent = '✓ Alterações salvas com sucesso.';
+      await Promise.all([loadPublicState(), loadAdminState()]);
+    } catch (err) {
+      fb.style.color = 'var(--yellow)';
+      fb.textContent = '⚠ ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Salvar alterações';
+    }
+  });
 }
 
 async function saveGameResults() {

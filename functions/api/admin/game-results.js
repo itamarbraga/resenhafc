@@ -1,4 +1,4 @@
-import { buildPublicState, deleteGameDay, initializeDb, listGameDays, listTeams, saveGameDay } from '../lib/db.js';
+import { buildPublicState, deleteGameDay, getGameDay, updateGameDay, initializeDb, listGameDays, listTeams, saveGameDay } from '../lib/db.js';
 import { requireAdmin } from '../lib/auth.js';
 import { error, json } from '../lib/helpers.js';
 
@@ -8,15 +8,37 @@ async function ensureAdmin(context) {
   if (!session) throw new Error('401');
 }
 
-// GET — list past game days
+// GET — list past game days, or GET ?id=N for a single game day with details
 export async function onRequestGet(context) {
   try {
     await ensureAdmin(context);
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get('id');
+    if (id) {
+      const day = await getGameDay(context.env, Number(id));
+      if (!day) return error('Jogo não encontrado.', 404);
+      return json({ ok: true, day });
+    }
     const days = await listGameDays(context.env);
     return json({ ok: true, gameDays: days });
   } catch (err) {
     if (err.message === '401') return error('Sessão expirada.', 401);
     return error(err.message || 'Erro ao carregar histórico.', 500);
+  }
+}
+
+// PATCH — update goals (and optionally wins) for an existing game day
+export async function onRequestPatch(context) {
+  try {
+    await ensureAdmin(context);
+    const body = await context.request.json();
+    const { id, teamResults, playerGoals } = body;
+    if (!id) return error('ID obrigatório.');
+    await updateGameDay(context.env, Number(id), teamResults || {}, playerGoals || []);
+    return json({ ok: true, state: await buildPublicState(context.env) });
+  } catch (err) {
+    if (err.message === '401') return error('Sessão expirada.', 401);
+    return error(err.message || 'Erro ao atualizar resultado.', 500);
   }
 }
 

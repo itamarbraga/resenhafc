@@ -2807,3 +2807,94 @@ body,
   .mvp-podium-slot--5 .mvp-avatar { width: 40px; height: 40px; }
   .mvp-crown { font-size: 1.1rem; }
 }
+
+/* ── Game history editable items ─────────────────────────────────────────── */
+.gr-history-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.02);
+  transition: border-color 0.15s;
+}
+.gr-history-item--open {
+  border-color: rgba(255,255,255,0.18);
+}
+
+.gr-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  gap: 10px;
+}
+.gr-history-header:hover { background: rgba(255,255,255,0.04); }
+
+.gr-history-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.gr-history-chevron {
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+
+.gr-history-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.gr-edit-section { margin-top: 12px; }
+
+.gr-edit-teams-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gr-edit-team {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.gr-edit-team-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.gr-edit-wins-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gr-edit-goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.gr-edit-goal-row:last-child { border-bottom: none; }
+
+.gr-edit-goal-name {
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

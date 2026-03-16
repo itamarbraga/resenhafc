@@ -631,6 +631,43 @@ export async function listGameDays(env) {
   return rows.results || [];
 }
 
+export async function getGameDay(env, id) {
+  const [day, teamRows, goalRows] = await Promise.all([
+    env.DB.prepare('SELECT id, game_date, notes FROM game_days WHERE id = ?1').bind(id).first(),
+    env.DB.prepare('SELECT team_key, wins FROM team_results WHERE game_day_id = ?1').bind(id).all(),
+    env.DB.prepare('SELECT player_name, goals FROM player_goals WHERE game_day_id = ?1 ORDER BY goals DESC').bind(id).all(),
+  ]);
+  if (!day) return null;
+  const teamResults = {};
+  for (const r of (teamRows.results || [])) teamResults[r.team_key] = { wins: r.wins };
+  return {
+    id: day.id,
+    gameDate: day.game_date,
+    notes: day.notes || '',
+    teamResults,
+    playerGoals: (goalRows.results || []).map(r => ({ name: r.player_name, goals: r.goals })),
+  };
+}
+
+export async function updateGameDay(env, id, teamResults, playerGoals) {
+  // Update team wins in team_results (minutes rows are kept as-is — they were calculated at save time)
+  for (const [teamKey, { wins }] of Object.entries(teamResults)) {
+    await env.DB
+      .prepare('UPDATE team_results SET wins = ?1 WHERE game_day_id = ?2 AND team_key = ?3')
+      .bind(wins, id, teamKey).run();
+  }
+
+  // Replace all goals for this game day
+  await env.DB.prepare('DELETE FROM player_goals WHERE game_day_id = ?1').bind(id).run();
+  for (const { name, goals } of (playerGoals || [])) {
+    if (goals > 0) {
+      await env.DB
+        .prepare('INSERT INTO player_goals (game_day_id, player_name, goals) VALUES (?1,?2,?3)')
+        .bind(id, name, goals).run();
+    }
+  }
+}
+
 export async function deleteGameDay(env, id) {
   await env.DB.prepare('DELETE FROM player_goals WHERE game_day_id = ?1').bind(id).run();
   await env.DB.prepare('DELETE FROM player_minutes WHERE game_day_id = ?1').bind(id).run();
