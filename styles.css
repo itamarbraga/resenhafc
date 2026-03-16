@@ -2704,3 +2704,119 @@ body,
   70%  { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* ── MVP Podium ──────────────────────────────────────────────────────────── */
+.mvp-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  margin: 28px 0 20px;
+}
+
+.mvp-podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 140px;
+}
+
+.mvp-crown {
+  font-size: 1.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(250,204,21,0.5));
+  animation: crown-float 2.8s ease-in-out infinite;
+}
+
+@keyframes crown-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+
+.mvp-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.15);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.mvp-podium-slot--1 .mvp-avatar {
+  width: 88px;
+  height: 88px;
+  border-color: #facc15;
+  box-shadow: 0 0 24px rgba(250,204,21,0.35);
+}
+
+.mvp-podium-slot--2 .mvp-avatar {
+  border-color: #94a3b8;
+}
+
+.mvp-podium-slot--3 .mvp-avatar {
+  border-color: #b45309;
+}
+
+.mvp-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--muted);
+}
+
+.mvp-podium-slot--1 .mvp-avatar-fallback { font-size: 2rem; }
+
+.mvp-podium-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mvp-podium-score {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mvp-podium-base {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  padding-top: 8px;
+}
+
+.mvp-podium-slot--1 .mvp-podium-base {
+  background: linear-gradient(160deg, #78350f, #b45309);
+  box-shadow: 0 -2px 12px rgba(250,204,21,0.2);
+}
+
+.mvp-podium-slot--2 .mvp-podium-base {
+  background: linear-gradient(160deg, #1e293b, #334155);
+}
+
+.mvp-podium-slot--3 .mvp-podium-base {
+  background: linear-gradient(160deg, #1c1917, #292524);
+}
+
+.mvp-rest {
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .mvp-avatar                        { width: 58px; height: 58px; }
+  .mvp-podium-slot--1 .mvp-avatar    { width: 72px; height: 72px; }
+  .mvp-podium-name                   { font-size: 0.75rem; }
+}

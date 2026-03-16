@@ -50,6 +50,8 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Chuteira de Ouro',
+    tab_mvp:            '🌟 MVP da Pelada',
+    legend_mvp:         'Combinação de presença (50%) + gols (50%) — top 5',
     legend_goat:        'Ratio de minutos jogados por dia (meta: 120 min)',
     legend_boot:        'Total de gols marcados em todas as partidas',
     kicker_org:         'Organização',
@@ -105,6 +107,8 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Golden Boot',
+    tab_mvp:            '🌟 Match MVP',
+    legend_mvp:         'Presence (50%) + goals (50%) combined — top 5',
     legend_goat:        'Minutes played ratio per day (goal: 120 min)',
     legend_boot:        'Total goals scored across all matches',
     kicker_org:         'Organization',
@@ -159,6 +163,8 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Bota de Oro',
+    tab_mvp:            '🌟 MVP del Partido',
+    legend_mvp:         'Presencia (50%) + goles (50%) combinados — top 5',
     legend_goat:        'Ratio de minutos jugados por día (meta: 120 min)',
     legend_boot:        'Total de goles marcados en todos los partidos',
     kicker_org:         'Organización',
@@ -2211,8 +2217,33 @@ async function logoutAdmin() {
 
 // ─── Rankings ────────────────────────────────────────────────────────────────
 
+function buildMvpRanking(goatRanking, goldenBoot) {
+  // Merge minutes ratio + goals into a single score (each normalised 0-100)
+  const maxGoals = Math.max(1, ...goldenBoot.map(p => p.totalGoals));
+  const allNames = [...new Set([
+    ...goatRanking.map(p => p.name.toLowerCase()),
+    ...goldenBoot.map(p => p.name.toLowerCase()),
+  ])];
+  return allNames.map(nameLower => {
+    const g = goatRanking.find(p => p.name.toLowerCase() === nameLower);
+    const b = goldenBoot.find(p => p.name.toLowerCase() === nameLower);
+    const minuteScore = g ? g.ratio : 0;           // already 0-100
+    const goalScore   = b ? (b.totalGoals / maxGoals) * 100 : 0;
+    const mvpScore    = Math.round((minuteScore * 0.5 + goalScore * 0.5) * 10) / 10;
+    return {
+      name:         g?.name || b?.name,
+      photo:        g?.photo || b?.photo || null,
+      mvpScore,
+      totalMinutes: g?.totalMinutes || 0,
+      ratio:        g?.ratio || 0,
+      totalGoals:   b?.totalGoals || 0,
+    };
+  }).sort((a, b) => b.mvpScore - a.mvpScore).slice(0, 5);
+}
+
 function renderRankings(stats) {
   if (!stats) return;
+  renderMvp(buildMvpRanking(stats.goatRanking || [], stats.goldenBoot || []));
   renderGoat(stats.goatRanking || [], stats.totalDays || 0);
   renderGoldenBoot(stats.goldenBoot || []);
 }
@@ -2222,6 +2253,62 @@ function avatarHtml(player, size = 40) {
     return `<img class="rank-avatar" src="${player.photo}" alt="${escapeHtml(player.name)}" style="width:${size}px;height:${size}px" />`;
   }
   return `<div class="rank-avatar rank-avatar-fallback" style="width:${size}px;height:${size}px">${escapeHtml(player.name.charAt(0).toUpperCase())}</div>`;
+}
+
+function renderMvp(ranking) {
+  const podium  = $('mvp-podium');
+  const restEl  = $('mvp-list');
+  if (!podium || !restEl) return;
+
+  if (!ranking.length) {
+    podium.innerHTML = '';
+    restEl.innerHTML = '<div class="empty-state">Registre resultados e gols para calcular o MVP!</div>';
+    return;
+  }
+
+  // ── Podium (top 3) ─────────────────────────────────────────────────────
+  const top3 = ranking.slice(0, 3);
+  // Display order: 2nd | 1st | 3rd
+  const podiumOrder = top3.length === 1 ? [top3[0]] :
+                      top3.length === 2 ? [top3[1], top3[0]] :
+                      [top3[1], top3[0], top3[2]];
+  const podiumPos   = top3.length === 1 ? [1] :
+                      top3.length === 2 ? [2, 1] :
+                      [2, 1, 3];
+  const podiumHeight = [null, '130px', '100px', '80px'];
+  const crownEmoji   = ['', '👑', '', ''];
+
+  podium.innerHTML = podiumOrder.map((p, idx) => {
+    const pos    = podiumPos[idx];
+    const medal  = pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉';
+    const crown  = crownEmoji[pos];
+    const height = podiumHeight[pos];
+    const photoEl = p.photo
+      ? `<img class="mvp-avatar" src="${p.photo}" alt="${escapeHtml(p.name)}" />`
+      : `<div class="mvp-avatar mvp-avatar-fallback">${escapeHtml(p.name.charAt(0).toUpperCase())}</div>`;
+    return `
+      <div class="mvp-podium-slot mvp-podium-slot--${pos}">
+        ${crown ? `<div class="mvp-crown">${crown}</div>` : ''}
+        ${photoEl}
+        <div class="mvp-podium-name">${escapeHtml(p.name.split(' ')[0])}</div>
+        <div class="mvp-podium-score">${p.mvpScore}%</div>
+        <div class="mvp-podium-base" style="height:${height}">${medal}</div>
+      </div>`;
+  }).join('');
+
+  // ── 4th & 5th ──────────────────────────────────────────────────────────
+  const rest = ranking.slice(3);
+  if (!rest.length) { restEl.innerHTML = ''; return; }
+  restEl.innerHTML = rest.map((p, i) => `
+    <div class="rank-item">
+      <div class="rank-medal">${i + 4}.</div>
+      ${avatarHtml(p)}
+      <div class="rank-info">
+        <div class="rank-name">${escapeHtml(p.name)}</div>
+        <div class="rank-meta">${p.ratio}% presença · ${p.totalGoals} gol${p.totalGoals !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="rank-value">${p.mvpScore}%</div>
+    </div>`).join('');
 }
 
 function renderGoat(ranking, totalDays) {
