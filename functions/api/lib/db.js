@@ -595,13 +595,13 @@ export async function saveGameDay(env, gameDate, teamResults, playerGoals, curre
   const gameDayId = dayResult.meta.last_row_id;
 
   // Save team results + calculate player minutes
-  for (const [teamKey, { wins, losses }] of Object.entries(teamResults)) {
+  for (const [teamKey, { wins }] of Object.entries(teamResults)) {
     await env.DB
       .prepare('INSERT INTO team_results (game_day_id, team_key, wins, losses) VALUES (?1,?2,?3,?4)')
-      .bind(gameDayId, teamKey, wins, losses)
+      .bind(gameDayId, teamKey, wins, 0)
       .run();
 
-    const minutes = wins * 7 + losses * 3.5;
+    const minutes = wins * 7;
     const players = currentTeams[teamKey] || [];
     for (const playerName of players) {
       await env.DB

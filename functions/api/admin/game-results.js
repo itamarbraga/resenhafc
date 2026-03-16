@@ -31,11 +31,12 @@ export async function onRequestPost(context) {
     if (!teamResults || typeof teamResults !== 'object') return error('Resultados dos times são obrigatórios.');
 
     // Validate team results
-    for (const key of ['A', 'B', 'C']) {
+    for (const key of ['Vermelho', 'Amarelo', 'Azul']) {
       const t = teamResults[key];
-      if (!t || typeof t.wins !== 'number' || typeof t.losses !== 'number') {
-        return error(`Vitórias e derrotas do Time ${key} são obrigatórias.`);
+      if (!t || typeof t.wins !== 'number') {
+        return error(`Vitórias do Time ${key} são obrigatórias.`);
       }
+      t.losses = 0;  // losses removed — only wins count
     }
 
     // Get current team rosters to distribute minutes

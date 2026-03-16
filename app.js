@@ -2332,9 +2332,9 @@ async function saveGameResults() {
   if (!gameDate) { feedback.textContent = 'Selecione a data do jogo.'; return; }
 
   const teamResults = {
-    Vermelho: { wins: Number($('gr-wins-Vermelho').value || 0), losses: Number($('gr-losses-Vermelho').value || 0) },
-    Amarelo:  { wins: Number($('gr-wins-Amarelo').value  || 0), losses: Number($('gr-losses-Amarelo').value  || 0) },
-    Azul:     { wins: Number($('gr-wins-Azul').value     || 0), losses: Number($('gr-losses-Azul').value     || 0) },
+    Vermelho: { wins: Number($('gr-wins-Vermelho').value || 0) },
+    Amarelo:  { wins: Number($('gr-wins-Amarelo').value  || 0) },
+    Azul:     { wins: Number($('gr-wins-Azul').value     || 0) },
   };
 
   // Collect goals
@@ -2360,7 +2360,6 @@ async function saveGameResults() {
     document.querySelectorAll('.gr-count-val').forEach((el) => { el.textContent = '0'; });
     ['Vermelho', 'Amarelo', 'Azul'].forEach((t) => {
       $(`gr-wins-${t}`).value = '0';
-      $(`gr-losses-${t}`).value = '0';
     });
     state.publicData = data.state;
     renderPublic();
