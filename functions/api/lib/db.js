@@ -356,10 +356,12 @@ export async function listTeams(env) {
     'SELECT team_key, player_name, sort_order FROM teams ORDER BY team_key ASC, sort_order ASC, id ASC'
   ).all();
 
-  const benchRow = await env.DB
-    .prepare("SELECT value FROM settings WHERE key = 'benchTeam'")
-    .first();
+  const [benchRow, dateRow] = await Promise.all([
+    env.DB.prepare("SELECT value FROM settings WHERE key = 'benchTeam'").first(),
+    env.DB.prepare("SELECT value FROM settings WHERE key = 'teamsGeneratedAt'").first(),
+  ]);
   const benchTeam = benchRow?.value || null;
+  const teamsGeneratedAt = dateRow?.value || null;
 
   const teams = { Vermelho: [], Amarelo: [], Azul: [] };
 
@@ -368,7 +370,7 @@ export async function listTeams(env) {
     teams[row.team_key].push(row.player_name);
   }
 
-  return { teams, benchTeam };
+  return { teams, benchTeam, teamsGeneratedAt };
 }
 
 export async function getSession(env, token) {
@@ -578,6 +580,7 @@ export async function buildPublicState(env) {
     sponsors,
     teams: teamsData.teams,
     benchTeam: teamsData.benchTeam,
+    teamsGeneratedAt: teamsData.teamsGeneratedAt || null,
     stats,
     approvedPlayers,
     storage: 'Cloudflare Pages + D1 ativo',

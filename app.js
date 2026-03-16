@@ -303,7 +303,7 @@ function renderPublic() {
   const data = state.publicData;
   if (!data) return;
 
-  const { config, members, sponsors, teams, benchTeam, storage, stats, approvedPlayers } = data;
+  const { config, members, sponsors, teams, benchTeam, teamsGeneratedAt, storage, stats, approvedPlayers } = data;
   $('hero-date').textContent = formatPrettyDate(config.gameDate);
   $('hero-arrival').textContent = `${t('arrival_prefix')} ${config.arrivalTime}`;
   $('hero-window').textContent = `Início: ${config.startTime} — ${config.endTime}`;
@@ -328,7 +328,7 @@ function renderPublic() {
   renderConfirmed(members, config.maxSlots);
   renderMaps(members, approvedPlayers);
   renderSponsors(sponsors);
-  renderTeams(teams, benchTeam);
+  renderTeams(teams, benchTeam, teamsGeneratedAt);
   renderRankings(stats);
   startCountdown(config.gameDate, config.startTime);
 }
@@ -993,11 +993,22 @@ const TEAM_CONFIG = {
   Azul:     { label: '🔵 Time Azul',     id: 'team-azul',     cardClass: 'team-card--azul'     },
 };
 
-function renderTeams(teams, benchTeam) {
+function renderTeams(teams, benchTeam, teamsGeneratedAt) {
   const grid  = $('teams-grid');
   const empty = $('teams-empty');
   const keys  = ['Vermelho', 'Amarelo', 'Azul'];
   const hasTeams = keys.some((k) => teams[k] && teams[k].length);
+
+  // Update section heading with date if available
+  const heading = document.querySelector('[data-i18n="title_teams"]');
+  if (heading) {
+    if (hasTeams && teamsGeneratedAt) {
+      const [y, m, d] = teamsGeneratedAt.split('-');
+      heading.textContent = `${t('title_teams')} ${d}/${m}/${y}`;
+    } else {
+      heading.textContent = t('title_teams');
+    }
+  }
 
   if (!hasTeams) {
     grid.classList.add('hidden');
