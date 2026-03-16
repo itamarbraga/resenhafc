@@ -675,7 +675,29 @@ export async function buildStats(env) {
     photo: photoMap[row.player_name.toLowerCase()] || null,
   }));
 
-  return { goatRanking, goldenBoot, totalDays };
+  // ── MVP: normalize minutes (0-100) + goals (0-100), weight 50/50, top 5
+  const allNames = new Set([
+    ...(minuteRows.results || []).map(r => r.player_name.toLowerCase()),
+    ...(goalRows.results   || []).map(r => r.player_name.toLowerCase()),
+  ]);
+  const maxMinutes = Math.max(1, ...goatRanking.map(p => p.totalMinutes));
+  const maxGoals   = Math.max(1, ...goldenBoot.map(p => p.totalGoals));
+  const minuteIdx  = Object.fromEntries(goatRanking.map(p => [p.name.toLowerCase(), p.totalMinutes]));
+  const goalIdx    = Object.fromEntries(goldenBoot.map(p  => [p.name.toLowerCase(), p.totalGoals]));
+
+  const mvpRanking = [...allNames]
+    .map(key => {
+      const mins  = minuteIdx[key] || 0;
+      const goals = goalIdx[key]   || 0;
+      const score = Math.round(((mins / maxMinutes) * 50 + (goals / maxGoals) * 50) * 10) / 10;
+      const srcRow = (minuteRows.results || []).find(r => r.player_name.toLowerCase() === key)
+                  || (goalRows.results   || []).find(r => r.player_name.toLowerCase() === key);
+      return { name: srcRow.player_name, totalMinutes: mins, totalGoals: goals, score, photo: photoMap[key] || null };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  return { goatRanking, goldenBoot, mvpRanking, totalDays };
 }
 
 // ─── Gallery ─────────────────────────────────────────────────────────────────

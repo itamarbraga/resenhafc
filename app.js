@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Chuteira de Ouro',
-    tab_mvp:            '🌟 MVP da Pelada',
+    tab_mvp:            '⚽ Bola Cheia',
     legend_mvp:         'Combinação de presença (50%) + gols (50%) — top 5',
     legend_goat:        'Ratio de minutos jogados por dia (meta: 120 min)',
     legend_boot:        'Total de gols marcados em todas as partidas',
@@ -107,7 +107,7 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Golden Boot',
-    tab_mvp:            '🌟 Match MVP',
+    tab_mvp:            '⚽ Bola Cheia',
     legend_mvp:         'Presence (50%) + goals (50%) combined — top 5',
     legend_goat:        'Minutes played ratio per day (goal: 120 min)',
     legend_boot:        'Total goals scored across all matches',
@@ -163,7 +163,7 @@ const TRANSLATIONS = {
     title_rankings:     'Rankings',
     tab_goat:           '🏆 GOAT',
     tab_golden_boot:    '⚽ Bota de Oro',
-    tab_mvp:            '🌟 MVP del Partido',
+    tab_mvp:            '⚽ Bola Cheia',
     legend_mvp:         'Presencia (50%) + goles (50%) combinados — top 5',
     legend_goat:        'Ratio de minutos jugados por día (meta: 120 min)',
     legend_boot:        'Total de goles marcados en todos los partidos',
@@ -2262,7 +2262,7 @@ function renderMvp(ranking) {
 
   if (!ranking.length) {
     podium.innerHTML = '';
-    restEl.innerHTML = '<div class="empty-state">Registre resultados e gols para calcular o MVP!</div>';
+    restEl.innerHTML = '<div class="empty-state">Registre resultados e gols para calcular o Bola Cheia!</div>';
     return;
   }
 
@@ -2513,8 +2513,9 @@ function attachEvents() {
       document.querySelectorAll('.ranking-tab').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       const target = tab.dataset.tab;
-      $('ranking-goat').classList.toggle('hidden', target !== 'goat');
-      $('ranking-boot').classList.toggle('hidden', target !== 'boot');
+      $('ranking-mvp') ?.classList.toggle('hidden', target !== 'mvp');
+      $('ranking-goat')?.classList.toggle('hidden', target !== 'goat');
+      $('ranking-boot')?.classList.toggle('hidden', target !== 'boot');
     });
   });
 
