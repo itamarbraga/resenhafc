@@ -1829,7 +1829,7 @@ function renderPendingAdmin(items) {
         </div>
       </div>
       <div class="row-actions">
-        ${item.paymentProof ? `<a class="btn btn-ghost btn-sm" href="${item.paymentProof}" target="_blank" rel="noopener">Ver comprovante</a>` : ''}
+        ${item.paymentProof ? `<button type="button" class="btn btn-ghost btn-sm" data-proof-id="${item.id}">Ver comprovante</button>` : ''}
         <button class="btn btn-primary btn-sm" data-approve-id="${item.id}">Aprovar</button>
         <button class="btn btn-danger btn-sm" data-delete-id="${item.id}">Remover</button>
       </div>
@@ -2176,9 +2176,51 @@ async function addConfirmedMember() {
   }
 }
 
+function openProofViewer(dataUrl, name) {
+  if (!dataUrl) return;
+
+  // Convert data URL → Blob → object URL (bypasses browser security block on data: hrefs)
+  try {
+    const [header, b64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+
+    if (mime === 'application/pdf') {
+      // Open PDF in new tab
+      const win = window.open(blobUrl, '_blank');
+      if (!win) {
+        // Fallback: force download if popup blocked
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `comprovante-${name}.pdf`;
+        a.click();
+      }
+    } else {
+      // Show image in lightbox
+      openPhotoLightbox(dataUrl, `Comprovante — ${name}`);
+      URL.revokeObjectURL(blobUrl);
+    }
+  } catch (e) {
+    console.error('openProofViewer error:', e);
+  }
+}
+
 async function handleAdminListClick(event) {
   const approveId = event.target.getAttribute('data-approve-id');
-  const deleteId = event.target.getAttribute('data-delete-id');
+  const deleteId  = event.target.getAttribute('data-delete-id');
+  const proofId   = event.target.getAttribute('data-proof-id');
+
+  if (proofId) {
+    const item = (state.adminData?.pendingMembers || []).find(m => String(m.id) === proofId);
+    if (!item?.paymentProof) return;
+    openProofViewer(item.paymentProof, item.name);
+    return;
+  }
+
   if (!approveId && !deleteId) return;
 
   try {
