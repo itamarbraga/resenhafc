@@ -52,18 +52,21 @@ export async function onRequestPost(context) {
     if (!gameDate) return error('Data do jogo é obrigatória.');
     if (!teamResults || typeof teamResults !== 'object') return error('Resultados dos times são obrigatórios.');
 
-    // Validate team results
-    for (const key of ['Vermelho', 'Amarelo', 'Azul']) {
+    // Get current team rosters — determines which teams are active
+    const teamsData = await listTeams(context.env);
+    const currentTeams = teamsData.teams;
+    const activeKeys = Object.keys(currentTeams).filter(k => (currentTeams[k] || []).length > 0);
+
+    // Validate only active teams; ignore Azul when only 2 teams
+    for (const key of activeKeys) {
       const t = teamResults[key];
       if (!t || typeof t.wins !== 'number') {
         return error(`Vitórias do Time ${key} são obrigatórias.`);
       }
-      t.losses = 0;  // losses removed — only wins count
+      t.losses = 0;
     }
-
-    // Get current team rosters to distribute minutes
-    const teamsData = await listTeams(context.env);
-    const currentTeams = teamsData.teams;
+    // Remove Azul from results if not an active team
+    if (!activeKeys.includes('Azul')) delete teamResults['Azul'];
 
     const gameDayId = await saveGameDay(
       context.env,

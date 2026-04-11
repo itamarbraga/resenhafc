@@ -1746,7 +1746,7 @@ function renderAdmin() {
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
   renderMovePlayer(data.members || [], data.teams || {});
-  renderAdminGameResults(data.members || [], data.gameDays || []);
+  renderAdminGameResults(data.members || [], data.gameDays || [], data.teams || {});
 }
 
 function renderPendingPlayers(items) {
@@ -2478,7 +2478,11 @@ function renderGoldenBoot(ranking) {
 
 // ─── Admin: game results ─────────────────────────────────────────────────────
 
-function renderAdminGameResults(members, gameDays) {
+function renderAdminGameResults(members, gameDays, teams) {
+  // Show/hide Azul win-input card based on active teams
+  const azulTeamCard = document.querySelector('.gr-team-card[data-team="Azul"]');
+  const twoTeams = !teams['Azul'] || teams['Azul'].length === 0;
+  if (azulTeamCard) azulTeamCard.style.display = twoTeams ? 'none' : '';
   // Populate goals grid with confirmed members
   const goalsGrid = $('gr-goals-list');
   if (!goalsGrid) return;
@@ -2697,11 +2701,13 @@ async function saveGameResults() {
   const gameDate = $('gr-date').value;
   if (!gameDate) { feedback.textContent = 'Selecione a data do jogo.'; return; }
 
-  const teamResults = {
-    Vermelho: { wins: Number($('gr-wins-Vermelho').value || 0) },
-    Amarelo:  { wins: Number($('gr-wins-Amarelo').value  || 0) },
-    Azul:     { wins: Number($('gr-wins-Azul').value     || 0) },
-  };
+  const teamResults = {};
+  ['Vermelho', 'Amarelo', 'Azul'].forEach(t => {
+    const card = document.querySelector(`.gr-team-card[data-team="${t}"]`);
+    if (card && card.style.display === 'none') return; // skip hidden teams
+    const inp = $(`gr-wins-${t}`);
+    if (inp) teamResults[t] = { wins: Number(inp.value || 0) };
+  });
 
   // Collect goals
   const playerGoals = [];
@@ -2725,7 +2731,8 @@ async function saveGameResults() {
     // Reset counters
     document.querySelectorAll('.gr-count-val').forEach((el) => { el.textContent = '0'; });
     ['Vermelho', 'Amarelo', 'Azul'].forEach((t) => {
-      $(`gr-wins-${t}`).value = '0';
+      const inp = $(`gr-wins-${t}`);
+      if (inp) inp.value = '0';
     });
     state.publicData = data.state;
     renderPublic();
