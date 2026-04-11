@@ -998,6 +998,8 @@ function renderTeams(teams, benchTeam, teamsGeneratedAt) {
   const empty = $('teams-empty');
   const keys  = ['Vermelho', 'Amarelo', 'Azul'];
   const hasTeams = keys.some((k) => teams[k] && teams[k].length);
+  const activeKeys = keys.filter(k => teams[k] && teams[k].length > 0);
+  const twoTeams = activeKeys.length <= 2;
 
   // Update section heading with date if available
   const heading = document.querySelector('[data-i18n="title_teams"]');
@@ -1019,16 +1021,18 @@ function renderTeams(teams, benchTeam, teamsGeneratedAt) {
   grid.classList.remove('hidden');
   empty.classList.add('hidden');
 
+  // Show/hide Azul card depending on team count
+  const azulCard = document.querySelector('.team-card--azul');
+  if (azulCard) azulCard.style.display = twoTeams ? 'none' : '';
+
   keys.forEach((key) => {
     const cfg    = TEAM_CONFIG[key];
     const target = $(cfg.id);
     const card   = target.closest('.team-card');
     const isBench = benchTeam === key;
 
-    // Mark bench team
     card.classList.toggle('team-card--bench', isBench);
 
-    // Bench badge on header
     const header = card.querySelector('.team-header');
     header.innerHTML = cfg.label + (isBench ? ' <span class="bench-badge">aguarda</span>' : '');
 
@@ -1741,6 +1745,7 @@ function renderAdmin() {
   renderPendingAdmin(data.pendingMembers || []);
   renderAdminMembers(data.members || []);
   renderCaptainsPicker(data.members || []);
+  renderMovePlayer(data.members || [], data.teams || {});
   renderAdminGameResults(data.members || [], data.gameDays || []);
 }
 
@@ -2242,6 +2247,78 @@ async function handleAdminListClick(event) {
   }
 }
 
+function renderMovePlayer(members, teams) {
+  const section = $('move-player-section');
+  if (!section) return;
+
+  const keys = ['Vermelho', 'Amarelo', 'Azul'];
+  const hasTeams = keys.some(k => teams[k] && teams[k].length);
+
+  // Show section only when teams exist
+  section.style.display = hasTeams ? '' : 'none';
+  if (!hasTeams) return;
+
+  // All players currently in any team
+  const allPlayers = keys.flatMap(k => (teams[k] || []).map(name => ({ name, team: k })));
+  const activeTeams = keys.filter(k => teams[k] && teams[k].length);
+
+  // Populate player select
+  const sel = $('move-player-name');
+  sel.innerHTML = '<option value="">Selecione o jogador…</option>' +
+    allPlayers.map(p =>
+      `<option value="${escapeHtml(p.name)}" data-current="${p.team}">${escapeHtml(p.name)} (${p.team})</option>`
+    ).join('');
+
+  // Populate team buttons
+  const btnWrap = $('move-team-btns');
+  const colors = { Vermelho: '#ef4444', Amarelo: '#eab308', Azul: '#3b82f6' };
+  btnWrap.innerHTML = activeTeams.map(k =>
+    `<button type="button" class="btn btn-secondary btn-sm move-team-btn"
+             data-team="${k}" style="border-color:${colors[k]};color:${colors[k]}">
+       ${k === 'Vermelho' ? '🔴' : k === 'Amarelo' ? '🟡' : '🔵'} ${k}
+     </button>`
+  ).join('');
+
+  // Highlight current team when player selected
+  sel.onchange = () => {
+    const opt = sel.options[sel.selectedIndex];
+    const currentTeam = opt?.dataset?.current;
+    btnWrap.querySelectorAll('.move-team-btn').forEach(btn => {
+      btn.classList.toggle('btn-primary', btn.dataset.team === currentTeam);
+      btn.classList.toggle('btn-secondary', btn.dataset.team !== currentTeam);
+      btn.disabled = btn.dataset.team === currentTeam;
+    });
+  };
+}
+
+async function movePlayer() {
+  const sel = $('move-player-name');
+  const fb  = $('move-player-feedback');
+  const activeBtn = $('move-team-btns')?.querySelector('.move-team-btn:not([disabled]):focus') ||
+                    window._moveTargetTeam && { dataset: { team: window._moveTargetTeam } };
+
+  // We'll capture the target via button click directly
+  fb.textContent = '';
+}
+
+async function doMovePlayer(playerName, toTeam) {
+  const fb = $('move-player-feedback');
+  fb.style.color = 'var(--muted)';
+  fb.textContent = 'Movendo…';
+  try {
+    await request('/api/admin/teams', {
+      method: 'PATCH',
+      body: JSON.stringify({ playerName, toTeam }),
+    });
+    fb.style.color = 'var(--green)';
+    fb.textContent = `✓ ${playerName} movido para ${toTeam}.`;
+    await Promise.all([loadPublicState(), loadAdminState()]);
+  } catch (err) {
+    fb.style.color = 'var(--yellow)';
+    fb.textContent = '⚠ ' + err.message;
+  }
+}
+
 async function generateTeams() {
   const ids = [...document.querySelectorAll('#captains-picker input:checked')].map((input) => Number(input.value));
   const feedback = $('teams-feedback');
@@ -2694,6 +2771,20 @@ function attachEvents() {
   $('pending-list').addEventListener('click', handleAdminListClick);
   $('admin-members-list').addEventListener('click', handleAdminListClick);
   $('generate-teams-btn').addEventListener('click', generateTeams);
+
+  // Move player — delegated on the button container
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.move-team-btn');
+    if (!btn) return;
+    const sel = $('move-player-name');
+    const playerName = sel?.value;
+    if (!playerName) {
+      const fb = $('move-player-feedback');
+      if (fb) { fb.style.color = 'var(--yellow)'; fb.textContent = 'Selecione um jogador primeiro.'; }
+      return;
+    }
+    doMovePlayer(playerName, btn.dataset.team);
+  });
   $('save-game-results-btn').addEventListener('click', saveGameResults);
   $('admin-refresh-btn').addEventListener('click', async () => {
     await Promise.all([loadPublicState(), loadAdminState()]);

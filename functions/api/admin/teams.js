@@ -1,19 +1,18 @@
-import { buildPublicState, initializeDb, listMembers, replaceTeams } from '../lib/db.js';
+import { buildPublicState, initializeDb, listMembers, listTeams, replaceTeams } from '../lib/db.js';
 import { requireAdmin } from '../lib/auth.js';
 import { error, json, shuffle } from '../lib/helpers.js';
 
-const TEAM_KEYS  = ['Vermelho', 'Amarelo', 'Azul'];
-const FULL_SIZE  = 5; // players per team for a full match
-const MIN_TOTAL  = 6; // minimum to generate teams
+const TEAM_KEYS_3 = ['Vermelho', 'Amarelo', 'Azul'];
+const TEAM_KEYS_2 = ['Vermelho', 'Amarelo'];
+const MIN_TOTAL   = 6;
 
-// Snake-draft balancing:
-// Sort players by skill descending, then distribute in a zig-zag pattern
-// so each team's total skill stays as equal as possible.
-// Pattern (3 teams): 0,1,2, 2,1,0, 0,1,2, ...
-const SNAKE = [0, 1, 2, 2, 1, 0];
+// Snake patterns
+const SNAKE_3 = [0, 1, 2, 2, 1, 0];
+const SNAKE_2 = [0, 1, 1, 0];
 
-function snakeIndex(pos) {
-  return SNAKE[pos % SNAKE.length];
+function snakeIndex(pos, keys) {
+  const pat = keys.length === 2 ? SNAKE_2 : SNAKE_3;
+  return pat[pos % pat.length];
 }
 
 function buildTeamsFromMembers(members, captainIds) {
@@ -21,29 +20,24 @@ function buildTeamsFromMembers(members, captainIds) {
     throw new Error('É preciso ter pelo menos 6 confirmados para gerar os times.');
   }
 
+  // Use 2 teams when fewer than 12 players, 3 teams otherwise
+  const TEAM_KEYS = members.length < 12 ? TEAM_KEYS_2 : TEAM_KEYS_3;
+  const numTeams  = TEAM_KEYS.length;
+
   const hasRatings = members.some((m) => m.skillRating != null);
 
   if (hasRatings) {
     // ── Balanced mode (snake draft) ────────────────────────────────────────
-    // Default unrated players to 3 (middle of 1-5)
-    const rated = members.map((m) => ({
-      ...m,
-      _r: m.skillRating ?? 3,
-    }));
-    // Sort by skill descending; shuffle within same rating for fairness
-    rated.sort((a, b) => {
-      if (b._r !== a._r) return b._r - a._r;
-      return Math.random() - 0.5;
-    });
+    const rated = members.map((m) => ({ ...m, _r: m.skillRating ?? 3 }));
+    rated.sort((a, b) => b._r !== a._r ? b._r - a._r : Math.random() - 0.5);
 
-    const teams = { Vermelho: [], Amarelo: [], Azul: [] };
+    const teams = Object.fromEntries(TEAM_KEYS.map(k => [k, []]));
     rated.forEach((member, i) => {
-      teams[TEAM_KEYS[snakeIndex(i)]].push(member.name);
+      teams[TEAM_KEYS[snakeIndex(i, TEAM_KEYS)]].push(member.name);
     });
 
     let benchTeam = null;
-    if (members.length < 15) {
-      // Team with lowest total skill sits out (they need the rest most)
+    if (members.length < numTeams * 5) {
       const totals = TEAM_KEYS.map((k) => ({
         key: k,
         total: rated.filter((m) => teams[k].includes(m.name)).reduce((s, m) => s + m._r, 0),
@@ -52,44 +46,67 @@ function buildTeamsFromMembers(members, captainIds) {
       benchTeam = totals[0].key;
     }
 
-    return { teams, benchTeam };
+    return { teams, benchTeam, numTeams };
   }
 
-  // ── Random mode with captains (original behaviour) ─────────────────────
+  // ── Random mode with captains ──────────────────────────────────────────
   const idsSet = new Set(captainIds.map(Number));
-  const selectedCaptains = members.filter((m) => idsSet.has(m.id)).slice(0, 3);
-  const fallback = members.filter((m) => !idsSet.has(m.id));
-  const shuffledFallback = shuffle(fallback);
+  const selectedCaptains = members.filter((m) => idsSet.has(m.id)).slice(0, numTeams);
+  const fallback = shuffle(members.filter((m) => !idsSet.has(m.id)));
   const captains = [
     ...selectedCaptains,
-    ...shuffledFallback.slice(0, Math.max(0, 3 - selectedCaptains.length)),
-  ].slice(0, 3);
+    ...fallback.slice(0, Math.max(0, numTeams - selectedCaptains.length)),
+  ].slice(0, numTeams);
 
-  if (captains.length < 3) {
-    throw new Error('São necessários pelo menos 3 jogadores para os capitães.');
+  if (captains.length < numTeams) {
+    throw new Error(`São necessários pelo menos ${numTeams} jogadores para os capitães.`);
   }
 
-  const captainIds_ = new Set(captains.map((c) => c.id));
-  const remaining = shuffle(members.filter((m) => !captainIds_.has(m.id)));
+  const captainSet = new Set(captains.map((c) => c.id));
+  const remaining  = shuffle(members.filter((m) => !captainSet.has(m.id)));
 
-  const teams = {
-    Vermelho: [captains[0].name],
-    Amarelo:  [captains[1].name],
-    Azul:     [captains[2].name],
-  };
-
+  const teams = Object.fromEntries(TEAM_KEYS.map((k, i) => [k, [captains[i].name]]));
   remaining.forEach((member, index) => {
-    teams[TEAM_KEYS[index % 3]].push(member.name);
+    teams[TEAM_KEYS[index % numTeams]].push(member.name);
   });
 
   let benchTeam = null;
-  if (members.length < 15) {
+  if (members.length < numTeams * 5) {
     const sizes = TEAM_KEYS.map((k) => ({ key: k, size: teams[k].length }));
     sizes.sort((a, b) => a.size - b.size);
     benchTeam = sizes[0].key;
   }
 
-  return { teams, benchTeam };
+  return { teams, benchTeam, numTeams };
+}
+
+// PATCH — move a single player to a different team
+export async function onRequestPatch(context) {
+  try {
+    await initializeDb(context.env);
+    const session = await requireAdmin(context.request, context.env);
+    if (!session) return error('Sessão expirada.', 401);
+
+    const { playerName, toTeam } = await context.request.json();
+    if (!playerName || !toTeam) return error('playerName e toTeam são obrigatórios.');
+
+    // Load current teams from DB
+    const { teams, benchTeam } = await listTeams(context.env);
+
+    // Remove player from current team
+    for (const key of Object.keys(teams)) {
+      teams[key] = (teams[key] || []).filter(n => n !== playerName);
+    }
+    // Add to target team
+    if (!teams[toTeam]) teams[toTeam] = [];
+    teams[toTeam].push(playerName);
+
+    await replaceTeams(context.env, teams, benchTeam);
+    return json({ ok: true, state: await buildPublicState(context.env) });
+  } catch (err) {
+    if (err.message === '401') return error('Sessão expirada.', 401);
+    return error(err.message || 'Erro ao mover jogador.', 500);
+  }
 }
 
 export async function onRequestPost(context) {

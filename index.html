@@ -462,6 +462,24 @@
           <p id="teams-feedback" class="form-feedback"></p>
         </section>
 
+        <section class="admin-section" id="move-player-section" style="display:none">
+          <h3>↔️ Mover jogador de time</h3>
+          <p class="admin-hint">Selecione o jogador e o time de destino para fazer ajustes após o sorteio.</p>
+          <div class="move-player-form">
+            <div class="field">
+              <span>Jogador</span>
+              <select id="move-player-name" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px">
+                <option value="">Selecione…</option>
+              </select>
+            </div>
+            <div class="field">
+              <span>Para o time</span>
+              <div id="move-team-btns" class="move-team-btns"></div>
+            </div>
+          </div>
+          <p id="move-player-feedback" class="form-feedback"></p>
+        </section>
+
         <!-- ── Resultado do dia ──────────────────────────────────────────── -->
         <section class="admin-section">
           <h3>⚽ Registrar resultado do jogo</h3>

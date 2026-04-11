@@ -363,7 +363,7 @@ export async function listTeams(env) {
   const benchTeam = benchRow?.value || null;
   const teamsGeneratedAt = dateRow?.value || null;
 
-  const teams = { Vermelho: [], Amarelo: [], Azul: [] };
+  const teams = {};
 
   for (const row of rows.results || []) {
     if (!teams[row.team_key]) teams[row.team_key] = [];
