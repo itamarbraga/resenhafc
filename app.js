@@ -1736,6 +1736,7 @@ function renderAdmin() {
   $('cfg-start').value = data.config.startTime;
   $('cfg-end').value = data.config.endTime;
   $('cfg-payment-link').value = data.config.paymentLink;
+  if ($('cfg-payment-amount')) $('cfg-payment-amount').value = data.config.paymentAmount || '';
   $('cfg-max-slots').value = data.config.maxSlots;
 
   renderPendingPlayers(data.pendingPlayers || []);
@@ -1891,6 +1892,7 @@ async function saveConfig(event) {
         endTime: $('cfg-end').value,
         paymentLink: $('cfg-payment-link').value.trim(),
         maxSlots: Number($('cfg-max-slots').value),
+        paymentAmount: Number($('cfg-payment-amount')?.value) || 0,
       }),
     });
     feedback.textContent = 'Configurações salvas com sucesso.';

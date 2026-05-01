@@ -17,6 +17,7 @@ export async function onRequestPut(context) {
       endTime: body.endTime || current.endTime,
       paymentLink: body.paymentLink || current.paymentLink,
       maxSlots: Number(body.maxSlots || current.maxSlots),
+      paymentAmount: Number(body.paymentAmount ?? current.paymentAmount ?? 4),
     };
 
     await saveConfig(context.env, next);
